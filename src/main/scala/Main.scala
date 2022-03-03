@@ -1,6 +1,7 @@
 package io.blindnet.backend
 
 import db.PgUserRepository
+import services.ServicesRouter
 
 import cats.effect.*
 import cats.implicits.*
@@ -20,6 +21,7 @@ object Main extends IOApp {
     for {
       httpServer <- BlazeServerBuilder[IO]
         .bindHttp(8087, "127.0.0.1")
+        .withHttpApp(ServicesRouter(userRepo).routes.orNotFound)
         .resource
     } yield httpServer
 

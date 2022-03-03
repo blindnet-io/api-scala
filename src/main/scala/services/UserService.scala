@@ -12,4 +12,11 @@ import org.http4s.implicits.*
 
 class UserService(userRepo: UserRepository[IO]) {
   def createUser(req: Request[IO]): IO[Response[IO]] = ???
+  def updateSelfUser(req: Request[IO]): IO[Response[IO]] = ???
+  def getSelfUser(req: Request[IO]): IO[Response[IO]] = ???
+  def getUser(req: Request[IO], id: String): IO[Response[IO]] = ???
+  def getUsers(req: Request[IO]): IO[Response[IO]] = ???
+  def deleteUser(req: Request[IO], id: String): IO[Response[IO]] = ???
+  def deleteSelfUser(req: Request[IO]): IO[Response[IO]] = ???
+  def deleteGroup(req: Request[IO], id: String): IO[Response[IO]] = ???
 }
