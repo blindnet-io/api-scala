@@ -21,7 +21,9 @@ object Main extends IOApp {
     for {
       httpServer <- BlazeServerBuilder[IO]
         .bindHttp(8087, "127.0.0.1")
-        .withHttpApp(ServicesRouter(userRepo).routes.orNotFound)
+        .withHttpApp(Router(
+          "/api/v1" -> ServicesRouter(userRepo).routes,
+        ).orNotFound)
         .resource
     } yield httpServer
 
