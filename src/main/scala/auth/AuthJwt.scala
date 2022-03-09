@@ -30,7 +30,7 @@ object AuthJwt {
     }
   }
 
-  private def processToken(token: String): IO[Either[String, UserAuthJwt]] =
+  def processToken(token: String): IO[Either[String, UserAuthJwt]] =
     JwtCirce.decodeAll(token, JwtOptions(signature = false, expiration = false, notBefore = false)) match {
       case Failure(exception) => IO.pure(Left("Illegal JWT format"))
       case Success((header, claim, _)) =>
@@ -38,13 +38,23 @@ object AuthJwt {
         else IO.pure(Left("Invalid JWT header"))
     }
 
-  private def verifyToken(token: String): IO[Either[String, UserAuthJwt]] =
+  def verifyToken(token: String): IO[Either[String, UserAuthJwt]] =
     JwtCirce.decodeJson(token, JwtOptions(signature = false, expiration = false, notBefore = false /* TODO */)) match {
       case Failure(exception) => IO.pure(Left("Invalid JWT"))
       case Success(value) =>
         value.as[UserAuthJwt] match {
           case Left(value) => IO.pure(Left("Invalid JWT"))
           case Right(value) => IO.pure(Right(value))
+        }
+    }
+
+  def verifyTokenWithKey(token: String, key: String): IO[UserAuthJwt] =
+    JwtCirce.decodeJson(token, key, Seq(JwtAlgorithm.Ed25519), JwtOptions(signature = false, expiration = false, notBefore = false /* TODO */)) match {
+      case Failure(exception) => IO.raiseError(Exception("Invalid JWT"))
+      case Success(value) =>
+        value.as[UserAuthJwt] match {
+          case Left(value) => IO.raiseError(Exception("Invalid JWT"))
+          case Right(value) => IO.pure(value)
         }
     }
 }
