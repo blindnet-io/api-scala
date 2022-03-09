@@ -25,7 +25,7 @@ class UserService(userRepo: UserRepository[IO]) {
         payload <- req.req.as[CreateUserPayload]
         uJwt <- AuthJwt.verifyTokenWithKey(payload.signedJwt, payload.publicSigningKey)
         _ <- userRepo.insert(User(
-          jwt.userId,
+          jwt.appId, jwt.userId,
           payload.publicEncryptionKey, payload.publicSigningKey,
           payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
           payload.keyDerivationSalt)

@@ -2,6 +2,7 @@ package io.blindnet.backend
 package models
 
 case class User(
+  appId: String,
   id: String,
   publicEncKey: String,
   publicSignKey: String,
