@@ -1,5 +1,7 @@
 # Blindnet backend, but in Scala
 
+Built on Scala 3 using cats-effect, http4s, doobie and circe.
+
 ## Environment variables
 
 All required, no default values.
