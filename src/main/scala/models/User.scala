@@ -6,6 +6,7 @@ case class User(
   id: String,
   publicEncKey: String,
   publicSignKey: String,
+  signedPublicEncKey: Option[String],
   encPrivateEncKey: Option[String],
   encPrivateSignKey: Option[String],
   keyDerivationSalt: Option[String],

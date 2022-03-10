@@ -28,15 +28,24 @@ class UserService(userRepo: UserRepository[IO]) {
         _ <- userRepo.insert(User(
           jwt.appId, jwt.userId,
           payload.publicEncryptionKey, payload.publicSigningKey,
+          payload.signedPublicEncryptionKey,
           payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
           payload.keyDerivationSalt)
         )
-        res <- Ok()
+        res <- Ok(jwt.userId)
       } yield res
 
     case req @ GET -> Root / "keys" / "me" as jwt =>
       userRepo.findById(jwt.userId).flatMap {
-        case Some(u) => Ok(u)
+        case Some(u) => Ok(UserKeysResponse(
+          userID = u.id,
+          publicEncryptionKey = u.publicEncKey,
+          publicSigningKey = u.publicSignKey,
+          encryptedPrivateEncryptionKey = u.encPrivateEncKey,
+          encryptedPrivateSigningKey = u.encPrivateSignKey,
+          keyDerivationSalt = u.keyDerivationSalt,
+          signedPublicEncryptionKey = u.signedPublicEncKey,
+        ))
         case None => NotFound()
       }
   }
