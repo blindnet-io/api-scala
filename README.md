@@ -10,7 +10,7 @@ All required, no default values.
 |----------------|-------------------|----------------------------------------|
 | BN_DB_URI      | Database URI      | `jdbc:postgresql://localhost/blindnet` |
 | BN_DB_USER     | Database username | `blindnet`                             |
-| BN_DB_PASSWORD | Database password | `blindnet`                              |
+| BN_DB_PASSWORD | Database password | `blindnet`                             |
 
 
 ## Database (PostgreSQL)
