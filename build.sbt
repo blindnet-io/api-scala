@@ -3,7 +3,7 @@ ThisBuild / scalaVersion := "3.1.1"
 
 val circeVersion = "0.14.1"
 val doobieVersion = "1.0.0-RC1"
-val http4sVersion = "0.23.9"
+val http4sVersion = "0.23.10"
 
 lazy val root = (project in file("."))
   .settings(
