@@ -23,14 +23,15 @@ class UserService(userRepo: UserRepository[IO]) {
     case req @ POST -> Root / "users" as jwt =>
       for {
         payload <- req.req.as[CreateUserPayload]
-        uJwt <- AuthJwt.verifyTokenWithKey(payload.signedJwt, payload.publicSigningKey)
+        rawJwt <- AuthJwt.getRawToken(req.req)
+        _ <- AuthJwt.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)
         _ <- userRepo.insert(User(
           jwt.appId, jwt.userId,
           payload.publicEncryptionKey, payload.publicSigningKey,
           payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
           payload.keyDerivationSalt)
         )
-        res <- Ok(s"Bonjour ${jwt.userId} ${uJwt.userId}")
+        res <- Ok()
       } yield res
   }
 
