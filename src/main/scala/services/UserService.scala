@@ -48,6 +48,21 @@ class UserService(userRepo: UserRepository[IO]) {
         ))
         case None => NotFound()
       }
+
+    // TODO this is the same as /me just above, refactor that
+    case req @ GET -> Root / "keys" as jwt =>
+      userRepo.findById(jwt.userId).flatMap {
+        case Some(u) => Ok(UserKeysResponse(
+          userID = u.id,
+          publicEncryptionKey = u.publicEncKey,
+          publicSigningKey = u.publicSignKey,
+          encryptedPrivateEncryptionKey = u.encPrivateEncKey,
+          encryptedPrivateSigningKey = u.encPrivateSignKey,
+          keyDerivationSalt = u.keyDerivationSalt,
+          signedPublicEncryptionKey = u.signedPublicEncKey,
+        ))
+        case None => NotFound()
+      }
   }
 
   private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(Forbidden(req.context))))
