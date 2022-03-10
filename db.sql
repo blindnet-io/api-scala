@@ -31,7 +31,8 @@ CREATE TABLE public.users (
     pub_sign_key text NOT NULL,
     enc_priv_enc_key text,
     enc_priv_sign_key text,
-    key_deriv_salt text
+    key_deriv_salt text,
+    signed_pub_enc_key text
 );
 
 
