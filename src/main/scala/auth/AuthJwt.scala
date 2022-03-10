@@ -19,11 +19,19 @@ import java.security.{KeyFactory, PublicKey}
 import java.util.Base64
 import scala.util.{Failure, Success}
 
-case class UserAuthJwt(appId: String, userId: String, groupId: String)
+sealed trait AuthJwt {
+  def asUser: IO[UserAuthJwt] = if isInstanceOf[UserAuthJwt] then IO.pure(asInstanceOf[UserAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
+  def asTempUser: IO[TempUserAuthJwt] = if isInstanceOf[TempUserAuthJwt] then IO.pure(asInstanceOf[TempUserAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
+}
+
+case class UserAuthJwt(appId: String, userId: String, groupId: String) extends AuthJwt
 implicit val dUserAuthJwt: Decoder[UserAuthJwt] = Decoder.forProduct3("app", "uid", "gid")(UserAuthJwt.apply)
 
+case class TempUserAuthJwt(appId: String, groupId: String, tokenId: String, userIds: Seq[String]) extends AuthJwt
+implicit val dTempUserAuthJwt: Decoder[TempUserAuthJwt] = Decoder.forProduct4("app", "gid", "tid", "uids")(TempUserAuthJwt.apply)
+
 object AuthJwt {
-  val authenticate: Kleisli[IO, Request[IO], Either[String, UserAuthJwt]] = Kleisli { (req: Request[IO]) =>
+  val authenticate: Kleisli[IO, Request[IO], Either[String, AuthJwt]] = Kleisli { (req: Request[IO]) =>
     getRawToken(req).flatMap(processToken)
   }
 
@@ -39,19 +47,23 @@ object AuthJwt {
       case None => IO.raiseError(Exception("No authorization header"))
     }
 
-  def processToken(token: String): IO[Either[String, UserAuthJwt]] =
+  def processToken(token: String): IO[Either[String, AuthJwt]] =
     JwtCirce.decodeAll(token, JwtOptions(signature = false, expiration = false, notBefore = false)) match {
       case Failure(exception) => IO.pure(Left("Illegal JWT format"))
       case Success((header, claim, _)) =>
-        if header.algorithm.contains(JwtUnknownAlgorithm("EdDSA")) && header.typ.contains("jwt") then verifyToken(token)
+        if header.algorithm.contains(JwtUnknownAlgorithm("EdDSA")) && header.typ.isDefined then
+          header.typ.get match {
+            case "jwt" => verifyToken[UserAuthJwt](token)
+            case _ => IO.pure(Left("Invalid JWT type"))
+          }
         else IO.pure(Left("Invalid JWT header"))
     }
 
-  def verifyToken(token: String): IO[Either[String, UserAuthJwt]] =
+  def verifyToken[T](token: String)(implicit dT: Decoder[T]): IO[Either[String, T]] =
     JwtCirce.decodeJson(token, JwtOptions(signature = false, expiration = false, notBefore = false /* TODO */)) match {
       case Failure(exception) => IO.pure(Left("Invalid JWT"))
       case Success(value) =>
-        value.as[UserAuthJwt] match {
+        value.as[T] match {
           case Left(value) => IO.pure(Left("Invalid JWT"))
           case Right(value) => IO.pure(Right(value))
         }
