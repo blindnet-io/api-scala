@@ -27,7 +27,7 @@ sealed trait AuthJwt {
 case class UserAuthJwt(appId: String, userId: String, groupId: String) extends AuthJwt
 implicit val dUserAuthJwt: Decoder[UserAuthJwt] = Decoder.forProduct3("app", "uid", "gid")(UserAuthJwt.apply)
 
-case class TempUserAuthJwt(appId: String, groupId: String, tokenId: String, userIds: Seq[String]) extends AuthJwt
+case class TempUserAuthJwt(appId: String, groupId: Option[String], tokenId: String, userIds: Seq[String]) extends AuthJwt
 implicit val dTempUserAuthJwt: Decoder[TempUserAuthJwt] = Decoder.forProduct4("app", "gid", "tid", "uids")(TempUserAuthJwt.apply)
 
 object AuthJwt {
@@ -54,6 +54,7 @@ object AuthJwt {
         if header.algorithm.contains(JwtUnknownAlgorithm("EdDSA")) && header.typ.isDefined then
           header.typ.get match {
             case "jwt" => verifyToken[UserAuthJwt](token)
+            case "tjwt" => verifyToken[TempUserAuthJwt](token)
             case _ => IO.pure(Left("Invalid JWT type"))
           }
         else IO.pure(Left("Invalid JWT header"))
@@ -61,10 +62,10 @@ object AuthJwt {
 
   def verifyToken[T](token: String)(implicit dT: Decoder[T]): IO[Either[String, T]] =
     JwtCirce.decodeJson(token, JwtOptions(signature = false, expiration = false, notBefore = false /* TODO */)) match {
-      case Failure(exception) => IO.pure(Left("Invalid JWT"))
+      case Failure(ex) => IO.pure(Left("Invalid JWT"))
       case Success(value) =>
         value.as[T] match {
-          case Left(value) => IO.pure(Left("Invalid JWT"))
+          case Left(ex) => IO.pure(Left("Invalid JWT"))
           case Right(value) => IO.pure(Right(value))
         }
     }

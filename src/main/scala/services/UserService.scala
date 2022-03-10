@@ -6,6 +6,7 @@ import models.*
 
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.effect.*
+import cats.implicits.*
 import io.circe.*
 import io.circe.generic.auto.*
 import io.circe.syntax.*
@@ -53,25 +54,23 @@ class UserService(userRepo: UserRepository[IO]) {
         }
       } yield ret
 
-
-    // TODO this is the same as /me just above, refactor that
     case req @ GET -> Root / "keys" as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
-        ret <- userRepo.findById(uJwt.userId).flatMap {
-          case Some(u) => Ok(UserKeysResponse(
-            userID = u.id,
-            publicEncryptionKey = u.publicEncKey,
-            publicSigningKey = u.publicSignKey,
-            encryptedPrivateEncryptionKey = u.encPrivateEncKey,
-            encryptedPrivateSigningKey = u.encPrivateSignKey,
-            keyDerivationSalt = u.keyDerivationSalt,
-            signedPublicEncryptionKey = u.signedPublicEncKey,
-          ))
-          case None => NotFound()
-        }
+        uJwt: TempUserAuthJwt <- jwt.asTempUser
+        ret <- Ok(uJwt.userIds.traverse(findUserPublicKeys))
       } yield ret
   }
+
+  private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =
+    userRepo.findById(id).flatMap {
+      case Some(u) => IO.pure(UserPublicKeysResponse(
+        userID = u.id,
+        publicEncryptionKey = u.publicEncKey,
+        publicSigningKey = u.publicSignKey,
+        signedPublicEncryptionKey = u.signedPublicEncKey,
+      ))
+      case None => IO.raiseError(Exception("User not found"))
+    }
 
   private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(Forbidden(req.context))))
   def routes: HttpRoutes[IO] = authMiddleware(authedRoutes)
@@ -94,5 +93,12 @@ case class UserKeysResponse(
   encryptedPrivateEncryptionKey: Option[String],
   encryptedPrivateSigningKey: Option[String],
   keyDerivationSalt: Option[String],
+  signedPublicEncryptionKey: Option[String],
+)
+
+case class UserPublicKeysResponse(
+  userID: String,
+  publicEncryptionKey: String,
+  publicSigningKey: String,
   signedPublicEncryptionKey: Option[String],
 )
