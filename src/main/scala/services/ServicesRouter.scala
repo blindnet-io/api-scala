@@ -17,9 +17,11 @@ import org.http4s.dsl.*
 import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.*
+import org.http4s.server.middleware.*
 
 class ServicesRouter(userRepo: UserRepository[IO]) {
   private val userService = UserService(userRepo)
 
   def routes: HttpRoutes[IO] = userService.routes
+  def corsRoutes: HttpRoutes[IO] = CORS.policy.withAllowOriginAll(routes)
 }

@@ -22,7 +22,7 @@ object Main extends IOApp {
       httpServer <- BlazeServerBuilder[IO]
         .bindHttp(8087, "127.0.0.1")
         .withHttpApp(Router(
-          "/api/v1" -> ServicesRouter(userRepo).routes,
+          "/api/v1" -> ServicesRouter(userRepo).corsRoutes,
         ).orNotFound)
         .resource
     } yield httpServer
