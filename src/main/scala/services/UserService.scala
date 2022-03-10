@@ -11,7 +11,7 @@ import io.circe.generic.auto.*
 import io.circe.syntax.*
 import org.http4s.*
 import org.http4s.circe.*
-import org.http4s.circe.CirceEntityDecoder.*
+import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.syntax.*
 import org.http4s.dsl.*
 import org.http4s.dsl.io.*
@@ -33,6 +33,12 @@ class UserService(userRepo: UserRepository[IO]) {
         )
         res <- Ok()
       } yield res
+
+    case req @ GET -> Root / "keys" / "me" as jwt =>
+      userRepo.findById(jwt.userId).flatMap {
+        case Some(u) => Ok(u)
+        case None => NotFound()
+      }
   }
 
   private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(Forbidden(req.context))))
@@ -43,6 +49,16 @@ case class CreateUserPayload(
   publicEncryptionKey: String,
   publicSigningKey: String,
   signedJwt: String,
+  encryptedPrivateEncryptionKey: Option[String],
+  encryptedPrivateSigningKey: Option[String],
+  keyDerivationSalt: Option[String],
+  signedPublicEncryptionKey: Option[String],
+)
+
+case class UserKeysResponse(
+  userID: String,
+  publicEncryptionKey: String,
+  publicSigningKey: String,
   encryptedPrivateEncryptionKey: Option[String],
   encryptedPrivateSigningKey: Option[String],
   keyDerivationSalt: Option[String],
