@@ -1,6 +1,6 @@
 package io.blindnet.backend
 
-import db.PgUserRepository
+import db.*
 import services.ServicesRouter
 
 import cats.effect.*
@@ -17,12 +17,14 @@ object Main extends IOApp {
       "org.postgresql.Driver", sys.env("BN_DB_URI"), sys.env("BN_DB_USER"), sys.env("BN_DB_PASSWORD")
     )
     val userRepo = PgUserRepository(xa)
+    val documentRepo = PgDocumentRepository(xa)
+    val documentKeyRepo = PgDocumentKeyRepository(xa)
 
     for {
       httpServer <- BlazeServerBuilder[IO]
         .bindHttp(8087, "127.0.0.1")
         .withHttpApp(Router(
-          "/api/v1" -> ServicesRouter(userRepo).corsRoutes,
+          "/api/v1" -> ServicesRouter(userRepo, documentRepo, documentKeyRepo).corsRoutes,
         ).orNotFound)
         .resource
     } yield httpServer
