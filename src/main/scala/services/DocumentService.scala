@@ -33,6 +33,15 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
         _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
         res <- Ok(doc.id)
       } yield res
+
+    case req @ GET -> Root / "documents" / "keys" / docId as jwt =>
+      for {
+        uJwt: UserAuthJwt <- jwt.asUser
+        ret <- documentKeyRepo.findByDocumentAndUser(uJwt.appId, docId, uJwt.userId).flatMap {
+          case Some(key) => Ok(key.encSymmetricKey)
+          case None => NotFound()
+        }
+      } yield ret
   }
 
   private def checkTempTokenContainsUser(jwt: TempUserAuthJwt, userId: String): IO[Unit] =

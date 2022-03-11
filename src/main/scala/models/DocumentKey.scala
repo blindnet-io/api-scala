@@ -10,5 +10,6 @@ case class DocumentKey(
 
 trait DocumentKeyRepository[F[_]] {
   def findAllByDocument(appId: String, docId: String): F[List[DocumentKey]]
+  def findByDocumentAndUser(appId: String, docId: String, userId: String): F[Option[DocumentKey]]
   def insert(key: DocumentKey): F[Unit]
 }
