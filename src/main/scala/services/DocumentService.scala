@@ -29,8 +29,8 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
         payload <- req.req.as[CreateDocumentPayload]
         _ <- payload.traverse(item => checkTempTokenContainsUser(uJwt, item.userID))
         doc = Document(uJwt.appId, UUID.randomUUID().toString)
-        _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
         _ <- documentRepo.insert(doc)
+        _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
         res <- Ok(doc.id)
       } yield res
   }
