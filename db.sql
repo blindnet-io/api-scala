@@ -21,6 +21,32 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: document_keys; Type: TABLE; Schema: public; Owner: blindnet
+--
+
+CREATE TABLE public.document_keys (
+    document_id uuid NOT NULL,
+    user_id text NOT NULL,
+    enc_sym_key text NOT NULL,
+    app_id text NOT NULL
+);
+
+
+ALTER TABLE public.document_keys OWNER TO blindnet;
+
+--
+-- Name: documents; Type: TABLE; Schema: public; Owner: blindnet
+--
+
+CREATE TABLE public.documents (
+    id uuid NOT NULL,
+    app text NOT NULL
+);
+
+
+ALTER TABLE public.documents OWNER TO blindnet;
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: blindnet
 --
 
@@ -39,11 +65,35 @@ CREATE TABLE public.users (
 ALTER TABLE public.users OWNER TO blindnet;
 
 --
+-- Name: document_keys document_keys_pk; Type: CONSTRAINT; Schema: public; Owner: blindnet
+--
+
+ALTER TABLE ONLY public.document_keys
+    ADD CONSTRAINT document_keys_pk PRIMARY KEY (document_id, user_id, app_id);
+
+
+--
+-- Name: documents documents_pk; Type: CONSTRAINT; Schema: public; Owner: blindnet
+--
+
+ALTER TABLE ONLY public.documents
+    ADD CONSTRAINT documents_pk PRIMARY KEY (id, app);
+
+
+--
 -- Name: users users_pk; Type: CONSTRAINT; Schema: public; Owner: blindnet
 --
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pk PRIMARY KEY (id, app);
+
+
+--
+-- Name: document_keys document_keys_documents_id_app_fk; Type: FK CONSTRAINT; Schema: public; Owner: blindnet
+--
+
+ALTER TABLE ONLY public.document_keys
+    ADD CONSTRAINT document_keys_documents_id_app_fk FOREIGN KEY (document_id, app_id) REFERENCES public.documents(id, app) ON DELETE CASCADE;
 
 
 --
