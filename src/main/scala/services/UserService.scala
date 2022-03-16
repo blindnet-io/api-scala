@@ -99,6 +99,14 @@ class UserService(userRepo: UserRepository[IO]) {
         _ <- userRepo.updatePrivateKeys(uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, payload.keyDerivationSalt)
         ret <- Ok()
       } yield ret
+
+    // FR-BE13 Delete User
+    case req @ DELETE -> Root / "users" / userId as jwt =>
+      for {
+        cJwt: ClientAuthJwt <- jwt.asClient
+        _ <- userRepo.delete(userId)
+        ret <- Ok()
+      } yield ret
   }
 
   private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =

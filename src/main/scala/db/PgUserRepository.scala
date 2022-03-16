@@ -22,4 +22,8 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
     sql"""update users set enc_priv_enc_key=${encPrivateEncKey}, enc_priv_sign_key=${encPrivateSignKey}, key_deriv_salt=${keyDerivationSalt}
           where users.id=${id}"""
       .update.run.transact(xa).map(_ => ())
+
+  override def delete(id: String): IO[Unit] =
+    sql"delete from users where id=$id"
+      .update.run.transact(xa).map(_ => ())
 }
