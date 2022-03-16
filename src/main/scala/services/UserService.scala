@@ -68,6 +68,14 @@ class UserService(userRepo: UserRepository[IO]) {
         uJwt: TempUserAuthJwt <- jwt.asTempUser
         ret <- Ok(uJwt.userIds.traverse(findUserPublicKeys))
       } yield ret
+
+    // FR-BE03 Get User Keys
+    // TODO Swagger is probably wrong here about returning an array - this impl matches SDK and FRD
+    case req @ GET -> Root / "keys" / userId as jwt =>
+      for {
+        uJwt: UserAuthJwt <- jwt.asUser
+        ret <- Ok(findUserPublicKeys(userId))
+      } yield ret
   }
 
   private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =
