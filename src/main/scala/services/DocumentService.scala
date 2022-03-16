@@ -37,6 +37,15 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
         res <- Ok(doc.id)
       } yield res
 
+    // FR-BE10 Update All User Keys
+    case req @ PUT -> Root / "documents" / "keys" / "user" / userId as jwt =>
+      for {
+        uJwt: UserAuthJwt <- jwt.asUser
+        payload <- req.req.as[UpdateUserKeysPayload]
+        _ <- payload.traverse(item => documentKeyRepo.updateOne(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
+        ret <- Ok()
+      } yield ret
+
     // FR-BE07 Get Document Key
     case req @ GET -> Root / "documents" / "keys" / docId as jwt =>
       for {
@@ -66,6 +75,12 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
 type CreateDocumentPayload = Seq[CreateDocumentItem]
 case class CreateDocumentItem(
   userID: String,
+  encryptedSymmetricKey: String
+)
+
+type UpdateUserKeysPayload = Seq[UpdateUserKeysItem]
+case class UpdateUserKeysItem(
+  documentID: String,
   encryptedSymmetricKey: String
 )
 

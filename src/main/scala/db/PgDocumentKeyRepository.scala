@@ -25,4 +25,9 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
     sql"""insert into document_keys (document_id, user_id, enc_sym_key, app_id)
           values (${key.documentId}::uuid, ${key.userId}, ${key.encSymmetricKey}, ${key.appId})"""
       .update.run.transact(xa).map(_ => ())
+
+  override def updateOne(key: DocumentKey): IO[Unit] =
+    sql"""update document_keys set enc_sym_key=${key.encSymmetricKey}
+          where document_id=${key.documentId}::uuid and user_id=${key.userId} and app_id=${key.appId}"""
+      .update.run.transact(xa).map(_ => ())
 }
