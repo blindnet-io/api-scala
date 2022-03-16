@@ -21,6 +21,10 @@ import org.http4s.server.AuthMiddleware
 
 class UserService(userRepo: UserRepository[IO]) {
   private def authedRoutes = AuthedRoutes.of[AuthJwt, IO] {
+    // FR-BE01 Create/Update User
+    // TODO also check signed pub enc key, not only signedJwt
+    // TODO handle group id
+    // TODO update if exists
     case req @ POST -> Root / "users" as jwt =>
       for {
         uJwt: UserAuthJwt <- jwt.asUser
@@ -37,23 +41,28 @@ class UserService(userRepo: UserRepository[IO]) {
         res <- Ok(uJwt.userId)
       } yield res
 
+    // FR-BE02 Get Self Keys
     case req @ GET -> Root / "keys" / "me" as jwt =>
       for {
         uJwt: UserAuthJwt <- jwt.asUser
         ret <- userRepo.findById(uJwt.userId).flatMap {
           case Some(u) => Ok(UserKeysResponse(
-            userID = u.id,
+            userID = u.id, // TODO swagger vs FRD
             publicEncryptionKey = u.publicEncKey,
             publicSigningKey = u.publicSignKey,
             encryptedPrivateEncryptionKey = u.encPrivateEncKey,
             encryptedPrivateSigningKey = u.encPrivateSignKey,
             keyDerivationSalt = u.keyDerivationSalt,
-            signedPublicEncryptionKey = u.signedPublicEncKey,
+            signedPublicEncryptionKey = u.signedPublicEncKey, // TODO swagger vs FRD
           ))
           case None => NotFound()
         }
       } yield ret
 
+    // TODO Does not match FRD nor Swagger but JS SDK expects it
+    // TODO Probably matches FR-BE03/4/5 (best 5 but not POST and no req params) but not exactly
+    // TODO Handle groups (?)
+    // Get Users Public Keys (from a temp user JWT)
     case req @ GET -> Root / "keys" as jwt =>
       for {
         uJwt: TempUserAuthJwt <- jwt.asTempUser

@@ -23,6 +23,9 @@ import java.util.UUID
 
 class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
   private def authedRoutes = AuthedRoutes.of[AuthJwt, IO] {
+    // FR-BE06 Save Document Keys
+    // TODO Accept both otjwt and jwt (?)
+    // TODO Handle groups (and update FRD that does not specify user IDs are allowed)
     case req @ POST -> Root / "documents" as jwt =>
       for {
         uJwt: TempUserAuthJwt <- jwt.asTempUser
@@ -34,6 +37,7 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
         res <- Ok(doc.id)
       } yield res
 
+    // FR-BE07 Get Document Key
     case req @ GET -> Root / "documents" / "keys" / docId as jwt =>
       for {
         uJwt: UserAuthJwt <- jwt.asUser
