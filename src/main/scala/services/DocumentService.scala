@@ -46,6 +46,14 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
           case None => NotFound()
         }
       } yield ret
+
+    // FR-BE08 Get All Documents And Keys
+    case req @ GET -> Root / "documents" / "keys" as jwt =>
+      for {
+        uJwt: UserAuthJwt <- jwt.asUser
+        keys <- documentKeyRepo.findAllByUser(uJwt.appId, uJwt.userId)
+        ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
+      } yield ret
   }
 
   private def checkTempTokenContainsUser(jwt: TempUserAuthJwt, userId: String): IO[Unit] =
@@ -58,5 +66,10 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
 type CreateDocumentPayload = Seq[CreateDocumentItem]
 case class CreateDocumentItem(
   userID: String,
+  encryptedSymmetricKey: String
+)
+
+case class GetAllDocsAndKeysResponseItem(
+  documentID: String,
   encryptedSymmetricKey: String
 )

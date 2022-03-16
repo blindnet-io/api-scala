@@ -12,6 +12,10 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
   override def findAllByDocument(appId: String, docId: String): IO[List[DocumentKey]] =
     sql"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId and document_id=$docId::uuid"
       .query[DocumentKey].to[List].transact(xa)
+  
+  override def findAllByUser(appId: String, userId: String): IO[List[DocumentKey]] =
+    sql"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId and user_id=$userId"
+      .query[DocumentKey].to[List].transact(xa)
 
   override def findByDocumentAndUser(appId: String, docId: String, userId: String): IO[Option[DocumentKey]] =
     sql"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId and document_id=$docId::uuid and user_id=$userId"
