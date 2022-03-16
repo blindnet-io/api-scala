@@ -69,12 +69,26 @@ class UserService(userRepo: UserRepository[IO]) {
         ret <- Ok(uJwt.userIds.traverse(findUserPublicKeys))
       } yield ret
 
-    // FR-BE03 Get User Keys
+    // FR-BE03 Get User Public Keys
     // TODO Swagger is probably wrong here about returning an array - this impl matches SDK and FRD
     case req @ GET -> Root / "keys" / userId as jwt =>
       for {
         uJwt: UserAuthJwt <- jwt.asUser
         ret <- Ok(findUserPublicKeys(userId))
+      } yield ret
+
+    // FR-BE04 FR-BE05 Get Users Public Keys
+    // TODO FRD vs Swagger on allowing no params and using temp token ids instead - here assuming always params (FRD)
+    // TODO FRD says if temp user then check user ids / group is contained in jwt but don't do that if
+    //      reg user, why? if needed, do that
+    // TODO Handle groups
+    case req @ POST -> Root / "keys" as jwt =>
+      for {
+        uJwt: UserAuthJwt <- jwt.asUser
+        ret <- req.req.as[UsersPublicKeysPayload].flatMap {
+          case GIDUsersPublicKeysPayload(groupID) => InternalServerError()
+          case UIDUsersPublicKeysPayload(userIDs) => Ok(userIDs.traverse(findUserPublicKeys))
+        }
       } yield ret
   }
 
@@ -119,3 +133,7 @@ case class UserPublicKeysResponse(
   publicSigningKey: String,
   signedPublicEncryptionKey: Option[String],
 )
+
+sealed trait UsersPublicKeysPayload
+case class GIDUsersPublicKeysPayload(groupID: String) extends UsersPublicKeysPayload
+case class UIDUsersPublicKeysPayload(userIDs: Seq[String]) extends UsersPublicKeysPayload
