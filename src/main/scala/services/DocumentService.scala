@@ -63,6 +63,14 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
         keys <- documentKeyRepo.findAllByUser(uJwt.appId, uJwt.userId)
         ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
+
+    // FR-BE11 Delete Document
+    case req @ DELETE -> Root / "documents" / docId as jwt =>
+      for {
+        cJwt: ClientAuthJwt <- jwt.asClient
+        _ <- documentRepo.delete(docId)
+        ret <- Ok()
+      } yield ret
   }
 
   private def checkTempTokenContainsUser(jwt: TempUserAuthJwt, userId: String): IO[Unit] =

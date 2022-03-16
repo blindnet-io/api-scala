@@ -9,4 +9,5 @@ case class Document(
 trait DocumentRepository[F[_]] {
   def findById(id: String): F[Option[Document]]
   def insert(doc: Document): F[Unit]
+  def delete(id: String): F[Unit]
 }
