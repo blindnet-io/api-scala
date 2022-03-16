@@ -15,4 +15,5 @@ case class User(
 trait UserRepository[F[_]] {
   def findById(id: String): F[Option[User]]
   def insert(user: User): F[Unit]
+  def updatePrivateKeys(id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: Option[String]): F[Unit]
 }

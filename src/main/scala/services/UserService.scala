@@ -90,6 +90,15 @@ class UserService(userRepo: UserRepository[IO]) {
           case UIDUsersPublicKeysPayload(userIDs) => Ok(userIDs.traverse(findUserPublicKeys))
         }
       } yield ret
+
+    // FR-BE09 Update Private Keys
+    case req @ PUT -> Root / "keys" / "me" as jwt =>
+      for {
+        uJwt: UserAuthJwt <- jwt.asUser
+        payload <- req.req.as[UpdateUserPrivateKeysPayload]
+        _ <- userRepo.updatePrivateKeys(uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, payload.keyDerivationSalt)
+        ret <- Ok()
+      } yield ret
   }
 
   private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =
@@ -115,6 +124,12 @@ case class CreateUserPayload(
   encryptedPrivateSigningKey: Option[String],
   keyDerivationSalt: Option[String],
   signedPublicEncryptionKey: Option[String],
+)
+
+case class UpdateUserPrivateKeysPayload(
+  encryptedPrivateEncryptionKey: String,
+  encryptedPrivateSigningKey: String,
+  keyDerivationSalt: Option[String],
 )
 
 case class UserKeysResponse(
