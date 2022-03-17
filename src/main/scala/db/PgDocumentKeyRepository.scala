@@ -7,6 +7,8 @@ import cats.effect.*
 import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
+import doobie.postgres.*
+import doobie.postgres.implicits.*
 
 class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[IO] {
   override def findAllByDocument(appId: String, docId: String): IO[List[DocumentKey]] =
@@ -15,6 +17,10 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
 
   override def findAllByUser(appId: String, userId: String): IO[List[DocumentKey]] =
     sql"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId and user_id=$userId"
+      .query[DocumentKey].to[List].transact(xa)
+
+  override def findAllByDocumentsAndUser(appId: String, docIds: List[String], userId: String): IO[List[DocumentKey]] =
+    sql"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId and user_id=$userId and document_id in $docIds::uuid[]"
       .query[DocumentKey].to[List].transact(xa)
 
   override def findByDocumentAndUser(appId: String, docId: String, userId: String): IO[Option[DocumentKey]] =

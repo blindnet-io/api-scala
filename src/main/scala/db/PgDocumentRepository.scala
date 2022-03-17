@@ -7,8 +7,14 @@ import cats.effect.*
 import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
+import doobie.postgres.*
+import doobie.postgres.implicits.*
 
 class PgDocumentRepository(xa: Transactor[IO]) extends DocumentRepository[IO] {
+  override def findAllByIds(ids: List[String]): IO[List[Document]] =
+    sql"select id, app from documents where id in $ids::uuid[]"
+      .query[Document].to[List].transact(xa)
+
   override def findById(id: String): IO[Option[Document]] =
     sql"select id, app from documents where id=$id::uuid"
       .query[Document].option.transact(xa)

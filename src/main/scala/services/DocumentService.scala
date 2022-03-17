@@ -64,6 +64,18 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
         ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
 
+    // FR-BE17 Get Documents And Keys
+    case req @ POST -> Root / "documents" / "keys" as jwt =>
+      for {
+        uJwt: UserAuthJwt <- jwt.asUser
+        payload <- req.req.as[GetDocsAndKeysPayload]
+        docs <- documentRepo.findAllByIds(payload.data_ids)
+        // TODO check docs length => 404
+        keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, payload.data_ids, uJwt.userId)
+        // TODO check keys length => 403
+        ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
+      } yield ret
+
     // FR-BE11 Delete Document
     case req @ DELETE -> Root / "documents" / docId as jwt =>
       for {
@@ -103,4 +115,8 @@ case class UpdateUserKeysItem(
 case class GetAllDocsAndKeysResponseItem(
   documentID: String,
   encryptedSymmetricKey: String
+)
+
+case class GetDocsAndKeysPayload(
+  data_ids: List[String]
 )
