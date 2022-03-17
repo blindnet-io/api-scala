@@ -27,7 +27,7 @@ class UserService(userRepo: UserRepository[IO]) {
     // TODO update if exists
     case req @ POST -> Root / "users" as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[CreateUserPayload]
         rawJwt <- AuthJwt.getRawToken(req.req)
         _ <- AuthJwt.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)
@@ -44,7 +44,7 @@ class UserService(userRepo: UserRepository[IO]) {
     // FR-BE02 Get Self Keys
     case req @ GET -> Root / "keys" / "me" as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUser
         ret <- userRepo.findById(uJwt.userId).flatMap {
           case Some(u) => Ok(UserKeysResponse(
             userID = u.id, // TODO swagger vs FRD
@@ -65,7 +65,7 @@ class UserService(userRepo: UserRepository[IO]) {
     // Get Users Public Keys (from a temp user JWT)
     case req @ GET -> Root / "keys" as jwt =>
       for {
-        uJwt: TempUserAuthJwt <- jwt.asTempUser
+        uJwt: TempUserJwt <- jwt.asTempUser
         ret <- Ok(uJwt.userIds.traverse(findUserPublicKeys))
       } yield ret
 
@@ -73,7 +73,7 @@ class UserService(userRepo: UserRepository[IO]) {
     // TODO Swagger is probably wrong here about returning an array - this impl matches SDK and FRD
     case req @ GET -> Root / "keys" / userId as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUser
         ret <- Ok(findUserPublicKeys(userId))
       } yield ret
 
@@ -95,7 +95,7 @@ class UserService(userRepo: UserRepository[IO]) {
     // FR-BE09 Update Private Keys
     case req @ PUT -> Root / "keys" / "me" as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[UpdateUserPrivateKeysPayload]
         _ <- userRepo.updatePrivateKeys(uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, payload.keyDerivationSalt)
         ret <- Ok()
@@ -104,7 +104,7 @@ class UserService(userRepo: UserRepository[IO]) {
     // FR-BE13 Delete User
     case req @ DELETE -> Root / "users" / userId as jwt =>
       for {
-        cJwt: ClientAuthJwt <- jwt.asClient
+        cJwt: ClientJwt <- jwt.asClient
         _ <- userRepo.delete(userId)
         ret <- Ok()
       } yield ret

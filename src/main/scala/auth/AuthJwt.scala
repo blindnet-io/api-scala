@@ -23,9 +23,9 @@ sealed trait AuthJwt {
   val appId: String
 
   def asAnyUser: IO[AnyUserJwt] = if isInstanceOf[AnyUserJwt] then IO.pure(asInstanceOf[AnyUserJwt]) else IO.raiseError(Exception("Wrong JWT type"))
-  def asUser: IO[UserAuthJwt] = if isInstanceOf[UserAuthJwt] then IO.pure(asInstanceOf[UserAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
-  def asTempUser: IO[TempUserAuthJwt] = if isInstanceOf[TempUserAuthJwt] then IO.pure(asInstanceOf[TempUserAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
-  def asClient: IO[ClientAuthJwt] = if isInstanceOf[ClientAuthJwt] then IO.pure(asInstanceOf[ClientAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
+  def asUser: IO[UserJwt] = if isInstanceOf[UserJwt] then IO.pure(asInstanceOf[UserJwt]) else IO.raiseError(Exception("Wrong JWT type"))
+  def asTempUser: IO[TempUserJwt] = if isInstanceOf[TempUserJwt] then IO.pure(asInstanceOf[TempUserJwt]) else IO.raiseError(Exception("Wrong JWT type"))
+  def asClient: IO[ClientJwt] = if isInstanceOf[ClientJwt] then IO.pure(asInstanceOf[ClientJwt]) else IO.raiseError(Exception("Wrong JWT type"))
 }
 
 sealed trait AnyUserJwt extends AuthJwt {
@@ -37,21 +37,21 @@ sealed trait AnyUserJwt extends AuthJwt {
    * @throws Exception if check failed
    */
   def containsUserId(userId: String): IO[Unit] = this match {
-    case uJwt: UserAuthJwt => IO.unit
-    case tuJwt: TempUserAuthJwt =>
+    case uJwt: UserJwt => IO.unit
+    case tuJwt: TempUserJwt =>
       if tuJwt.userIds.contains(userId) then IO.unit
       else IO.raiseError(Exception("Token does not contain user ID"))
   }
 }
 
-case class UserAuthJwt(appId: String, userId: String, groupId: String) extends AnyUserJwt
-implicit val dUserAuthJwt: Decoder[UserAuthJwt] = Decoder.forProduct3("app", "uid", "gid")(UserAuthJwt.apply)
+case class UserJwt(appId: String, userId: String, groupId: String) extends AnyUserJwt
+implicit val dUserAuthJwt: Decoder[UserJwt] = Decoder.forProduct3("app", "uid", "gid")(UserJwt.apply)
 
-case class TempUserAuthJwt(appId: String, groupId: Option[String], tokenId: String, userIds: Seq[String]) extends AnyUserJwt
-implicit val dTempUserAuthJwt: Decoder[TempUserAuthJwt] = Decoder.forProduct4("app", "gid", "tid", "uids")(TempUserAuthJwt.apply)
+case class TempUserJwt(appId: String, groupId: Option[String], tokenId: String, userIds: Seq[String]) extends AnyUserJwt
+implicit val dTempUserAuthJwt: Decoder[TempUserJwt] = Decoder.forProduct4("app", "gid", "tid", "uids")(TempUserJwt.apply)
 
-case class ClientAuthJwt(appId: String, tokenId: String) extends AuthJwt
-implicit val dClientAuthJwt: Decoder[ClientAuthJwt] = Decoder.forProduct2("app", "tid")(ClientAuthJwt.apply)
+case class ClientJwt(appId: String, tokenId: String) extends AuthJwt
+implicit val dClientAuthJwt: Decoder[ClientJwt] = Decoder.forProduct2("app", "tid")(ClientJwt.apply)
 
 object AuthJwt {
   val authenticate: Kleisli[IO, Request[IO], Either[String, AuthJwt]] = Kleisli { (req: Request[IO]) =>
@@ -76,9 +76,9 @@ object AuthJwt {
       case Success((header, claim, _)) =>
         if header.algorithm.contains(JwtUnknownAlgorithm("EdDSA")) && header.typ.isDefined then
           header.typ.get match {
-            case "jwt" => verifyToken[UserAuthJwt](token)
-            case "tjwt" => verifyToken[TempUserAuthJwt](token)
-            case "cjwt" => verifyToken[ClientAuthJwt](token)
+            case "jwt" => verifyToken[UserJwt](token)
+            case "tjwt" => verifyToken[TempUserJwt](token)
+            case "cjwt" => verifyToken[ClientJwt](token)
             case _ => IO.pure(Left("Invalid JWT type"))
           }
         else IO.pure(Left("Invalid JWT header"))
@@ -94,11 +94,11 @@ object AuthJwt {
         }
     }
 
-  def verifyTokenWithKey(token: String, key: String): IO[UserAuthJwt] =
+  def verifyTokenWithKey(token: String, key: String): IO[UserJwt] =
     JwtCirce.decodeJson(token, key, Seq(JwtAlgorithm.Ed25519), JwtOptions(signature = false, expiration = false, notBefore = false /* TODO */)) match {
       case Failure(ex) => IO.raiseError(Exception("Invalid JWT", ex))
       case Success(value) =>
-        value.as[UserAuthJwt] match {
+        value.as[UserJwt] match {
           case Left(ex) => IO.raiseError(Exception("Invalid JWT", ex))
           case Right(value) => IO.pure(value)
         }

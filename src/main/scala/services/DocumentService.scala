@@ -39,7 +39,7 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
     // FR-BE10 Update All User Keys
     case req @ PUT -> Root / "documents" / "keys" / "user" / userId as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[UpdateUserKeysPayload]
         _ <- payload.traverse(item => documentKeyRepo.updateOne(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
         ret <- Ok()
@@ -48,7 +48,7 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
     // FR-BE07 Get Document Key
     case req @ GET -> Root / "documents" / "keys" / docId as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUser
         ret <- documentKeyRepo.findByDocumentAndUser(uJwt.appId, docId, uJwt.userId).flatMap {
           case Some(key) => Ok(key.encSymmetricKey)
           case None => NotFound()
@@ -58,7 +58,7 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
     // FR-BE08 Get All Documents And Keys
     case req @ GET -> Root / "documents" / "keys" as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUser
         keys <- documentKeyRepo.findAllByUser(uJwt.appId, uJwt.userId)
         ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
@@ -66,7 +66,7 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
     // FR-BE17 Get Documents And Keys
     case req @ POST -> Root / "documents" / "keys" as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[GetDocsAndKeysPayload]
         docs <- documentRepo.findAllByIds(payload.data_ids)
         // TODO check docs length => 404
@@ -78,7 +78,7 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
     // FR-BE11 Delete Document
     case req @ DELETE -> Root / "documents" / docId as jwt =>
       for {
-        cJwt: ClientAuthJwt <- jwt.asClient
+        cJwt: ClientJwt <- jwt.asClient
         _ <- documentRepo.delete(docId)
         ret <- Ok()
       } yield ret
@@ -86,7 +86,7 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
     // FR-BE12 Delete Documents User
     case req @ DELETE -> Root / "documents" / "user" / userId as jwt =>
       for {
-        cJwt: ClientAuthJwt <- jwt.asClient
+        cJwt: ClientJwt <- jwt.asClient
         _ <- documentKeyRepo.deleteByUser(userId)
         ret <- Ok()
       } yield ret
