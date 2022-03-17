@@ -55,10 +55,10 @@ CREATE TABLE public.users (
     app text NOT NULL,
     pub_enc_key text NOT NULL,
     pub_sign_key text NOT NULL,
-    enc_priv_enc_key text,
-    enc_priv_sign_key text,
-    key_deriv_salt text,
-    signed_pub_enc_key text
+    enc_priv_enc_key text NOT NULL,
+    enc_priv_sign_key text NOT NULL,
+    key_deriv_salt text NOT NULL,
+    signed_pub_enc_key text NOT NULL
 );
 
 

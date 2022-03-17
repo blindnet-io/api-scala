@@ -21,25 +21,30 @@ import org.http4s.server.AuthMiddleware
 
 class UserService(userRepo: UserRepository[IO]) {
   private def authedRoutes = AuthedRoutes.of[AuthJwt, IO] {
-    // FR-BE01 Create/Update User
-    // TODO also check signed pub enc key, not only signedJwt
+    // FR-BE01 Create User
     // TODO handle group id
-    // TODO update if exists
     case req @ POST -> Root / "users" as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[CreateUserPayload]
         rawJwt <- AuthJwt.getRawToken(req.req)
         _ <- AuthJwt.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)
-        _ <- userRepo.insert(User(
-          uJwt.appId, uJwt.userId,
-          payload.publicEncryptionKey, payload.publicSigningKey,
-          payload.signedPublicEncryptionKey,
-          payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
-          payload.keyDerivationSalt)
-        )
-        res <- Ok(uJwt.userId)
-      } yield res
+        existing <- userRepo.findById(uJwt.userId)
+        ret <- existing match {
+          case Some(_) => BadRequest()
+          case None => for {
+            _ <- AuthJwt.verifySignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
+            _ <- userRepo.insert(User(
+              uJwt.appId, uJwt.userId,
+              payload.publicEncryptionKey, payload.publicSigningKey,
+              payload.signedPublicEncryptionKey,
+              payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
+              payload.keyDerivationSalt)
+            )
+            ret <- Ok()
+          } yield ret
+        }
+      } yield ret
 
     // FR-BE02 Get Self Keys
     case req @ GET -> Root / "keys" / "me" as jwt =>
@@ -97,7 +102,10 @@ class UserService(userRepo: UserRepository[IO]) {
       for {
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[UpdateUserPrivateKeysPayload]
-        _ <- userRepo.updatePrivateKeys(uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, payload.keyDerivationSalt)
+        _ <- payload.keyDerivationSalt match {
+          case Some(salt) => userRepo.updatePrivateKeysAndSalt(uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, salt)
+          case None => userRepo.updatePrivateKeys(uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey)
+        }
         ret <- Ok()
       } yield ret
 
@@ -129,10 +137,10 @@ case class CreateUserPayload(
   publicEncryptionKey: String,
   publicSigningKey: String,
   signedJwt: String,
-  encryptedPrivateEncryptionKey: Option[String],
-  encryptedPrivateSigningKey: Option[String],
-  keyDerivationSalt: Option[String],
-  signedPublicEncryptionKey: Option[String],
+  encryptedPrivateEncryptionKey: String,
+  encryptedPrivateSigningKey: String,
+  keyDerivationSalt: String,
+  signedPublicEncryptionKey: String,
 )
 
 case class UpdateUserPrivateKeysPayload(
@@ -145,17 +153,17 @@ case class UserKeysResponse(
   userID: String,
   publicEncryptionKey: String,
   publicSigningKey: String,
-  encryptedPrivateEncryptionKey: Option[String],
-  encryptedPrivateSigningKey: Option[String],
-  keyDerivationSalt: Option[String],
-  signedPublicEncryptionKey: Option[String],
+  encryptedPrivateEncryptionKey: String,
+  encryptedPrivateSigningKey: String,
+  keyDerivationSalt: String,
+  signedPublicEncryptionKey: String,
 )
 
 case class UserPublicKeysResponse(
   userID: String,
   publicEncryptionKey: String,
   publicSigningKey: String,
-  signedPublicEncryptionKey: Option[String],
+  signedPublicEncryptionKey: String,
 )
 
 sealed trait UsersPublicKeysPayload

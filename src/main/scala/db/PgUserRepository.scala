@@ -18,7 +18,12 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
           values (${user.appId}, ${user.id}, ${user.publicEncKey}, ${user.publicSignKey}, ${user.signedPublicEncKey}, ${user.encPrivateEncKey}, ${user.encPrivateSignKey}, ${user.keyDerivationSalt})"""
       .update.run.transact(xa).map(_ => ())
 
-  override def updatePrivateKeys(id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: Option[String]): IO[Unit] =
+  override def updatePrivateKeys(id: String, encPrivateEncKey: String, encPrivateSignKey: String): IO[Unit] =
+    sql"""update users set enc_priv_enc_key=${encPrivateEncKey}, enc_priv_sign_key=${encPrivateSignKey}
+          where users.id=${id}"""
+      .update.run.transact(xa).map(_ => ())
+
+  override def updatePrivateKeysAndSalt(id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): IO[Unit] =
     sql"""update users set enc_priv_enc_key=${encPrivateEncKey}, enc_priv_sign_key=${encPrivateSignKey}, key_deriv_salt=${keyDerivationSalt}
           where users.id=${id}"""
       .update.run.transact(xa).map(_ => ())
