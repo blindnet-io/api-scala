@@ -26,17 +26,10 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
     // FR-BE06 Save Document Keys
     // TODO Handle groups (and update FRD that does not specify user IDs are allowed)
     case req @ POST -> Root / "documents" as jwt =>
-      def checkPermission(jwt: AnyUserJwt, userId: String) = jwt match {
-        case uJwt: UserAuthJwt => IO.unit
-        case tuJwt: TempUserAuthJwt =>
-          if tuJwt.userIds.contains(userId) then IO.unit
-          else IO.raiseError(Exception("Token does not contain user ID"))
-      }
-
       for {
         auJwt: AnyUserJwt <- jwt.asAnyUser
         payload <- req.req.as[CreateDocumentPayload]
-        _ <- payload.traverse(item => checkPermission(auJwt, item.userID))
+        _ <- payload.traverse(item => auJwt.containsUserId(item.userID))
         doc = Document(auJwt.appId, UUID.randomUUID().toString)
         _ <- documentRepo.insert(doc)
         _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))

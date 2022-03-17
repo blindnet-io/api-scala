@@ -79,15 +79,16 @@ class UserService(userRepo: UserRepository[IO]) {
 
     // FR-BE04 FR-BE05 Get Users Public Keys
     // TODO FRD vs Swagger on allowing no params and using temp token ids instead - here assuming always params (FRD)
-    // TODO FRD says if temp user then check user ids / group is contained in jwt but don't do that if
-    //      reg user, why? if needed, do that
     // TODO Handle groups
     case req @ POST -> Root / "keys" as jwt =>
       for {
-        uJwt: UserAuthJwt <- jwt.asUser
+        auJwt: AnyUserJwt <- jwt.asAnyUser
         ret <- req.req.as[UsersPublicKeysPayload].flatMap {
           case GIDUsersPublicKeysPayload(groupID) => InternalServerError()
-          case UIDUsersPublicKeysPayload(userIDs) => Ok(userIDs.traverse(findUserPublicKeys))
+          case UIDUsersPublicKeysPayload(userIDs) => for {
+            _ <- userIDs.traverse(auJwt.containsUserId)
+            ret <- Ok(userIDs.traverse(findUserPublicKeys))
+          } yield ret
         }
       } yield ret
 

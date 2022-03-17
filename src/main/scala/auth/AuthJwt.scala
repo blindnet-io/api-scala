@@ -28,7 +28,21 @@ sealed trait AuthJwt {
   def asClient: IO[ClientAuthJwt] = if isInstanceOf[ClientAuthJwt] then IO.pure(asInstanceOf[ClientAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
 }
 
-sealed trait AnyUserJwt extends AuthJwt
+sealed trait AnyUserJwt extends AuthJwt {
+  /**
+   * If applied on a tempuser JWT, checks whether it contains the given user ID or is a member of the group that contains the user ID.
+   * On a user JWT, does nothing.
+   * @param userId User ID to check
+   * @return IO of Unit if check succeeded
+   * @throws Exception if check failed
+   */
+  def containsUserId(userId: String): IO[Unit] = this match {
+    case uJwt: UserAuthJwt => IO.unit
+    case tuJwt: TempUserAuthJwt =>
+      if tuJwt.userIds.contains(userId) then IO.unit
+      else IO.raiseError(Exception("Token does not contain user ID"))
+  }
+}
 
 case class UserAuthJwt(appId: String, userId: String, groupId: String) extends AnyUserJwt
 implicit val dUserAuthJwt: Decoder[UserAuthJwt] = Decoder.forProduct3("app", "uid", "gid")(UserAuthJwt.apply)
