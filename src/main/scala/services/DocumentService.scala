@@ -24,16 +24,22 @@ import java.util.UUID
 class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
   private def authedRoutes = AuthedRoutes.of[AuthJwt, IO] {
     // FR-BE06 Save Document Keys
-    // TODO Accept both otjwt and jwt (?)
     // TODO Handle groups (and update FRD that does not specify user IDs are allowed)
     case req @ POST -> Root / "documents" as jwt =>
+      def checkPermission(jwt: AnyUserJwt, userId: String) = jwt match {
+        case uJwt: UserAuthJwt => IO.unit
+        case tuJwt: TempUserAuthJwt =>
+          if tuJwt.userIds.contains(userId) then IO.unit
+          else IO.raiseError(Exception("Token does not contain user ID"))
+      }
+
       for {
-        uJwt: TempUserAuthJwt <- jwt.asTempUser
+        auJwt: AnyUserJwt <- jwt.asAnyUser
         payload <- req.req.as[CreateDocumentPayload]
-        _ <- payload.traverse(item => checkTempTokenContainsUser(uJwt, item.userID))
-        doc = Document(uJwt.appId, UUID.randomUUID().toString)
+        _ <- payload.traverse(item => checkPermission(auJwt, item.userID))
+        doc = Document(auJwt.appId, UUID.randomUUID().toString)
         _ <- documentRepo.insert(doc)
-        _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
+        _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
         res <- Ok(doc.id)
       } yield res
 
@@ -92,9 +98,6 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
         ret <- Ok()
       } yield ret
   }
-
-  private def checkTempTokenContainsUser(jwt: TempUserAuthJwt, userId: String): IO[Unit] =
-    if jwt.userIds.contains(userId) then IO.unit else IO.raiseError(Exception("Token does not contain user ID"))
 
   private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(Forbidden(req.context))))
   def routes: HttpRoutes[IO] = authMiddleware(authedRoutes)

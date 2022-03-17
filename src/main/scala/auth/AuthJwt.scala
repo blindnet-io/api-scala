@@ -20,15 +20,20 @@ import java.util.Base64
 import scala.util.{Failure, Success}
 
 sealed trait AuthJwt {
+  val appId: String
+
+  def asAnyUser: IO[AnyUserJwt] = if isInstanceOf[AnyUserJwt] then IO.pure(asInstanceOf[AnyUserJwt]) else IO.raiseError(Exception("Wrong JWT type"))
   def asUser: IO[UserAuthJwt] = if isInstanceOf[UserAuthJwt] then IO.pure(asInstanceOf[UserAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
   def asTempUser: IO[TempUserAuthJwt] = if isInstanceOf[TempUserAuthJwt] then IO.pure(asInstanceOf[TempUserAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
   def asClient: IO[ClientAuthJwt] = if isInstanceOf[ClientAuthJwt] then IO.pure(asInstanceOf[ClientAuthJwt]) else IO.raiseError(Exception("Wrong JWT type"))
 }
 
-case class UserAuthJwt(appId: String, userId: String, groupId: String) extends AuthJwt
+sealed trait AnyUserJwt extends AuthJwt
+
+case class UserAuthJwt(appId: String, userId: String, groupId: String) extends AnyUserJwt
 implicit val dUserAuthJwt: Decoder[UserAuthJwt] = Decoder.forProduct3("app", "uid", "gid")(UserAuthJwt.apply)
 
-case class TempUserAuthJwt(appId: String, groupId: Option[String], tokenId: String, userIds: Seq[String]) extends AuthJwt
+case class TempUserAuthJwt(appId: String, groupId: Option[String], tokenId: String, userIds: Seq[String]) extends AnyUserJwt
 implicit val dTempUserAuthJwt: Decoder[TempUserAuthJwt] = Decoder.forProduct4("app", "gid", "tid", "uids")(TempUserAuthJwt.apply)
 
 case class ClientAuthJwt(appId: String, tokenId: String) extends AuthJwt
