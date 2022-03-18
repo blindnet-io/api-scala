@@ -33,7 +33,7 @@ class UserService(userRepo: UserRepository[IO]) {
         ret <- existing match {
           case Some(_) => BadRequest()
           case None => for {
-            _ <- AuthJwt.verifySignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
+            _ <- AuthJwt.verifyB64SignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
             _ <- userRepo.insert(User(
               uJwt.appId, uJwt.userId,
               payload.publicEncryptionKey, payload.publicSigningKey,

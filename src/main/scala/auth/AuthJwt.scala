@@ -108,6 +108,10 @@ object AuthJwt {
     if JwtUtils.verify(data.getBytes, Base64.getDecoder.decode(signature), parseKey(key), JwtAlgorithm.Ed25519) then IO.unit
     else IO.raiseError(Exception("Invalid JWT"))
 
+  def verifyB64SignatureWithKey(data: String, signature: String, key: String): IO[Unit] =
+    if JwtUtils.verify(Base64.getDecoder.decode(data), Base64.getDecoder.decode(signature), parseKey(key), JwtAlgorithm.Ed25519) then IO.unit
+    else IO.raiseError(Exception("Bad signature"))
+
   private def parseKey(raw: String): PublicKey =
     val kf = KeyFactory.getInstance("Ed25519")
     val pubKeyInfo = new SubjectPublicKeyInfo(new AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519), Base64.getDecoder.decode(raw))
