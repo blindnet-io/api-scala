@@ -41,7 +41,7 @@ class UserService(userRepo: UserRepository[IO]) {
               payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
               payload.keyDerivationSalt)
             )
-            ret <- Ok()
+            ret <- Ok(uJwt.userId)
           } yield ret
         }
       } yield ret
