@@ -58,7 +58,8 @@ CREATE TABLE public.users (
     enc_priv_enc_key text NOT NULL,
     enc_priv_sign_key text NOT NULL,
     key_deriv_salt text NOT NULL,
-    signed_pub_enc_key text NOT NULL
+    signed_pub_enc_key text NOT NULL,
+    group_id text
 );
 
 

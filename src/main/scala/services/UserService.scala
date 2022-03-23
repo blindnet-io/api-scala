@@ -22,7 +22,6 @@ import org.http4s.server.AuthMiddleware
 class UserService(userRepo: UserRepository[IO]) {
   private def authedRoutes = AuthedRoutes.of[AuthJwt, IO] {
     // FR-BE01 Create User
-    // TODO handle group id
     case req @ POST -> Root / "users" as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
@@ -35,7 +34,7 @@ class UserService(userRepo: UserRepository[IO]) {
           case None => for {
             _ <- AuthJwt.verifyB64SignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
             _ <- userRepo.insert(User(
-              uJwt.appId, uJwt.userId,
+              uJwt.appId, uJwt.userId, uJwt.groupId,
               payload.publicEncryptionKey, payload.publicSigningKey,
               payload.signedPublicEncryptionKey,
               payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
@@ -84,14 +83,16 @@ class UserService(userRepo: UserRepository[IO]) {
 
     // FR-BE04 FR-BE05 Get Users Public Keys
     // TODO FRD vs Swagger on allowing no params and using temp token ids instead - here assuming always params (FRD)
-    // TODO Handle groups
     case req @ POST -> Root / "keys" as jwt =>
       for {
         auJwt: AnyUserJwt <- jwt.asAnyUser
         ret <- req.req.as[UsersPublicKeysPayload].flatMap {
-          case GIDUsersPublicKeysPayload(groupID) => InternalServerError()
+          case GIDUsersPublicKeysPayload(groupID) =>
+            if auJwt.containsGroup(groupID)
+            then Ok(userRepo.findAllByGroup(groupID).map(users => users.map(UserPublicKeysResponse.apply)))
+            else Forbidden()
           case UIDUsersPublicKeysPayload(userIDs) => for {
-            _ <- userIDs.traverse(auJwt.containsUserId)
+            _ <- auJwt.containsUserIds(userIDs, userRepo)
             ret <- Ok(userIDs.traverse(findUserPublicKeys))
           } yield ret
         }
@@ -120,12 +121,7 @@ class UserService(userRepo: UserRepository[IO]) {
 
   private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =
     userRepo.findById(id).flatMap {
-      case Some(u) => IO.pure(UserPublicKeysResponse(
-        userID = u.id,
-        publicEncryptionKey = u.publicEncKey,
-        publicSigningKey = u.publicSignKey,
-        signedPublicEncryptionKey = u.signedPublicEncKey,
-      ))
+      case Some(u) => IO.pure(UserPublicKeysResponse(u))
       case None => IO.raiseError(Exception("User not found"))
     }
 
@@ -165,7 +161,10 @@ case class UserPublicKeysResponse(
   publicSigningKey: String,
   signedPublicEncryptionKey: String,
 )
+object UserPublicKeysResponse {
+  def apply(user: User): UserPublicKeysResponse = UserPublicKeysResponse(user.id, user.publicEncKey, user.publicSignKey, user.signedPublicEncKey)
+}
 
 sealed trait UsersPublicKeysPayload
 case class GIDUsersPublicKeysPayload(groupID: String) extends UsersPublicKeysPayload
-case class UIDUsersPublicKeysPayload(userIDs: Seq[String]) extends UsersPublicKeysPayload
+case class UIDUsersPublicKeysPayload(userIDs: List[String]) extends UsersPublicKeysPayload

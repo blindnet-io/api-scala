@@ -21,15 +21,14 @@ import org.http4s.server.AuthMiddleware
 
 import java.util.UUID
 
-class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
+class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
   private def authedRoutes = AuthedRoutes.of[AuthJwt, IO] {
     // FR-BE06 Save Document Keys
-    // TODO Handle groups (and update FRD that does not specify user IDs are allowed)
     case req @ POST -> Root / "documents" as jwt =>
       for {
         auJwt: AnyUserJwt <- jwt.asAnyUser
         payload <- req.req.as[CreateDocumentPayload]
-        _ <- payload.traverse(item => auJwt.containsUserId(item.userID))
+        _ <- auJwt.containsUserIds(payload.map(item => item.userID), userRepo)
         doc = Document(auJwt.appId, UUID.randomUUID().toString)
         _ <- documentRepo.insert(doc)
         _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
@@ -96,7 +95,7 @@ class DocumentService(documentRepo: DocumentRepository[IO], documentKeyRepo: Doc
   def routes: HttpRoutes[IO] = authMiddleware(authedRoutes)
 }
 
-type CreateDocumentPayload = Seq[CreateDocumentItem]
+type CreateDocumentPayload = List[CreateDocumentItem]
 case class CreateDocumentItem(
   userID: String,
   encryptedSymmetricKey: String

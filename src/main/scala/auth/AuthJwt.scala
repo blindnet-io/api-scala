@@ -1,8 +1,11 @@
 package io.blindnet.backend
 package auth
 
+import models.*
+
 import cats.data.Kleisli
 import cats.effect.IO
+import io.blindnet.backend.models.UserRepository
 import io.circe.*
 import io.circe.syntax.*
 import org.bouncycastle.asn1.edec.EdECObjectIdentifiers
@@ -30,17 +33,27 @@ sealed trait AuthJwt {
 
 sealed trait AnyUserJwt extends AuthJwt {
   /**
-   * If applied on a tempuser JWT, checks whether it contains the given user ID or is a member of the group that contains the user ID.
+   * If applied on a tempuser JWT, checks whether it contains the given user IDs or if its group contains all provided user IDs.
    * On a user JWT, does nothing.
-   * @param userId User ID to check
+   * @param userIds User IDs to check
    * @return IO of Unit if check succeeded
    * @throws Exception if check failed
    */
-  def containsUserId(userId: String): IO[Unit] = this match {
+  def containsUserIds(userIds: List[String], userRepo: UserRepository[IO]): IO[Unit] = this match {
     case uJwt: UserJwt => IO.unit
     case tuJwt: TempUserJwt =>
-      if tuJwt.userIds.contains(userId) then IO.unit
-      else IO.raiseError(Exception("Token does not contain user ID"))
+      if tuJwt.userIds.containsSlice(userIds) then IO.unit
+      else tuJwt.groupId match {
+        case Some(groupId) => userRepo.countByIdsOutsideGroup(groupId, userIds).flatMap {
+          wrongUsers => if wrongUsers == 0 then IO.unit else IO.raiseError(Exception("Token does not contain user ID"))
+        }
+        case None => IO.raiseError(Exception("Token does not contain user ID"))
+      }
+  }
+  
+  def containsGroup(groupId: String): Boolean = this match {
+    case uJwt: UserJwt => true
+    case tuJwt: TempUserJwt => tuJwt.groupId.contains(groupId)
   }
 }
 

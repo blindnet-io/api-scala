@@ -22,7 +22,7 @@ import org.http4s.server.middleware.*
 
 class ServicesRouter(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
   private val userService = UserService(userRepo)
-  private val documentService = DocumentService(documentRepo, documentKeyRepo)
+  private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo)
 
   def routes: HttpRoutes[IO] = userService.routes <+> documentService.routes
   def corsRoutes: HttpRoutes[IO] = CORS.policy.withAllowOriginAll(routes)
