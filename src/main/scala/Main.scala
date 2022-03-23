@@ -6,6 +6,8 @@ import services.ServicesRouter
 import cats.effect.*
 import cats.implicits.*
 import doobie.Transactor
+import io.blindnet.backend.errors.ErrorHandler
+import org.http4s.{Request, Response}
 import org.http4s.blaze.server.*
 import org.http4s.dsl.io.*
 import org.http4s.implicits.*
@@ -26,6 +28,7 @@ object Main extends IOApp {
         .withHttpApp(Router(
           "/api/v1" -> ServicesRouter(userRepo, documentRepo, documentKeyRepo).corsRoutes,
         ).orNotFound)
+        .withServiceErrorHandler(ErrorHandler.handler)
         .resource
     } yield httpServer
 

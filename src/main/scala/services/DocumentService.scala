@@ -91,8 +91,8 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       } yield ret
   }
 
-  private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(Forbidden(req.context))))
-  def routes: HttpRoutes[IO] = authMiddleware(authedRoutes)
+//  private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(IO.raiseError(AuthException(req.context.asInstanceOf[String])))))
+  def routes: HttpRoutes[IO] = AuthJwt.authMiddleware(authedRoutes)
 }
 
 type CreateDocumentPayload = List[CreateDocumentItem]

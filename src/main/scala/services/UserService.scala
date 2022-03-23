@@ -2,6 +2,7 @@ package io.blindnet.backend
 package services
 
 import auth.*
+import errors.*
 import models.*
 
 import cats.data.{EitherT, Kleisli, OptionT}
@@ -122,11 +123,11 @@ class UserService(userRepo: UserRepository[IO]) {
   private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =
     userRepo.findById(id).flatMap {
       case Some(u) => IO.pure(UserPublicKeysResponse(u))
-      case None => IO.raiseError(Exception("User not found"))
+      case None => IO.raiseError(NotFoundException("User not found"))
     }
 
-  private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(Forbidden(req.context))))
-  def routes: HttpRoutes[IO] = authMiddleware(authedRoutes)
+//  private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(Forbidden(req.context))))
+  def routes: HttpRoutes[IO] = AuthJwt.authMiddleware(authedRoutes)
 }
 
 case class CreateUserPayload(
