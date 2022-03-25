@@ -12,7 +12,10 @@ object ErrorHandler {
   val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   val handler: Request[IO] => PartialFunction[Throwable, IO[Response[IO]]] = req => {
-    case e: AuthException => IO.pure(Response(Status.Forbidden).withEntity(e.getMessage))
+    case e: AuthException => for {
+      _ <- logger.debug(e)("Authentication exception")
+    } yield Response(Status.Forbidden).withEntity(e.getMessage)
+
     case e: Exception => for {
       _ <- logger.error(e)("Unhandled exception")
     } yield Response(Status.InternalServerError)
