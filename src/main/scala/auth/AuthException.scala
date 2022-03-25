@@ -3,4 +3,4 @@ package auth
 
 import errors.AppException
 
-class AuthException(message: String, cause: Throwable = null) extends AppException(message, cause)
+class AuthException(message: String = null, cause: Throwable = null) extends AppException(message, cause)

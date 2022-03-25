@@ -2,6 +2,7 @@ package io.blindnet.backend
 package services
 
 import auth.*
+import errors.*
 import models.*
 
 import cats.data.{EitherT, Kleisli, OptionT}
@@ -68,9 +69,9 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[GetDocsAndKeysPayload]
         docs <- documentRepo.findAllByIds(payload.data_ids)
-        // TODO check docs length => 404
+        _ <- if docs.size == payload.data_ids.size then IO.unit else IO.raiseError(NotFoundException())
         keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, payload.data_ids, uJwt.userId)
-        // TODO check keys length => 403
+        _ <- if keys.size == payload.data_ids.size then IO.unit else IO.raiseError(AuthException())
         ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
 
