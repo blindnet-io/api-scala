@@ -118,6 +118,14 @@ class UserService(userRepo: UserRepository[IO]) {
         _ <- userRepo.delete(userId)
         ret <- Ok()
       } yield ret
+
+    // FR-UM04 Delete Self User
+    case req @ DELETE -> Root / "users" / "me" as jwt =>
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        _ <- userRepo.delete(uJwt.userId)
+        ret <- Ok()
+      } yield ret
   }
 
   private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =
