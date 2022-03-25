@@ -3,4 +3,4 @@ package errors
 
 abstract class AppException(message: String = null, cause: Throwable = null) extends Exception(message, cause)
 
-class NotFoundException() extends AppException
+class NotFoundException(message: String) extends AppException(message)
