@@ -18,6 +18,7 @@ object Main extends IOApp {
     val xa = Transactor.fromDriverManager[IO](
       "org.postgresql.Driver", sys.env("BN_DB_URI"), sys.env("BN_DB_USER"), sys.env("BN_DB_PASSWORD")
     )
+    val appRepo = PgAppRepository(xa)
     val userRepo = PgUserRepository(xa)
     val documentRepo = PgDocumentRepository(xa)
     val documentKeyRepo = PgDocumentKeyRepository(xa)
@@ -26,7 +27,7 @@ object Main extends IOApp {
       httpServer <- BlazeServerBuilder[IO]
         .bindHttp(8087, "127.0.0.1")
         .withHttpApp(Router(
-          "/api/v1" -> ServicesRouter(userRepo, documentRepo, documentKeyRepo).corsRoutes,
+          "/api/v1" -> ServicesRouter(appRepo, userRepo, documentRepo, documentKeyRepo).corsRoutes,
         ).orNotFound)
         .withServiceErrorHandler(ErrorHandler.handler)
         .resource

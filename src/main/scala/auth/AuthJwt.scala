@@ -3,25 +3,8 @@ package auth
 
 import models.*
 
-import cats.data.{Kleisli, OptionT}
-import cats.effect.IO
-import io.blindnet.backend.errors.ErrorHandler
+import cats.effect.*
 import io.circe.*
-import io.circe.syntax.*
-import org.bouncycastle.asn1.edec.EdECObjectIdentifiers
-import org.bouncycastle.asn1.x509.{AlgorithmIdentifier, SubjectPublicKeyInfo}
-import org.http4s.headers.Authorization
-import org.http4s.server.AuthMiddleware
-import org.http4s.{Credentials, Request}
-import org.typelevel.ci.*
-import pdi.jwt.*
-import pdi.jwt.algorithms.JwtUnknownAlgorithm
-
-import java.nio.charset.StandardCharsets
-import java.security.spec.{EdECPublicKeySpec, NamedParameterSpec, PKCS8EncodedKeySpec, X509EncodedKeySpec}
-import java.security.{KeyFactory, PublicKey}
-import java.util.Base64
-import scala.util.{Failure, Success}
 
 sealed trait AuthJwt {
   val appId: String
@@ -38,7 +21,7 @@ sealed trait AnyUserJwt extends AuthJwt {
    * On a user JWT, does nothing.
    * @param userIds User IDs to check
    * @return IO of Unit if check succeeded
-   * @throws Exception if check failed
+   * @throws AuthException if check failed
    */
   def containsUserIds(userIds: List[String], userRepo: UserRepository[IO]): IO[Unit] = this match {
     case uJwt: UserJwt => IO.unit
@@ -66,69 +49,3 @@ implicit val dTempUserAuthJwt: Decoder[TempUserJwt] = Decoder.forProduct4("app",
 
 case class ClientJwt(appId: String, tokenId: String) extends AuthJwt
 implicit val dClientAuthJwt: Decoder[ClientJwt] = Decoder.forProduct2("app", "tid")(ClientJwt.apply)
-
-object AuthJwt {
-  private val authenticate: Kleisli[IO, Request[IO], Either[String, AuthJwt]] = Kleisli { (req: Request[IO]) =>
-    getRawToken(req).flatMap(processToken)
-  }
-  val authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(IO.raiseError(AuthException(req.context.asInstanceOf[String])))))
-
-  def getRawToken(req: Request[IO]): IO[String] =
-    req.headers.get[Authorization] match {
-      case Some(header) =>
-        header.credentials match {
-          case Credentials.Token(authScheme, token) =>
-            if authScheme.equals(ci"Bearer") then IO.pure(token)
-            else IO.raiseError(AuthException("Invalid authorization header"))
-          case _ => IO.raiseError(AuthException("Invalid authorization header"))
-        }
-      case None => IO.raiseError(AuthException("Missing or invalid authorization header"))
-    }
-
-  def processToken(token: String): IO[Either[String, AuthJwt]] =
-    JwtCirce.decodeAll(token, JwtOptions(signature = false, expiration = false, notBefore = false)) match {
-      case Failure(exception) => IO.pure(Left("Illegal JWT format"))
-      case Success((header, claim, _)) =>
-        if header.algorithm.contains(JwtUnknownAlgorithm("EdDSA")) && header.typ.isDefined then
-          header.typ.get match {
-            case "jwt" => verifyToken[UserJwt](token)
-            case "tjwt" => verifyToken[TempUserJwt](token)
-            case "cjwt" => verifyToken[ClientJwt](token)
-            case _ => IO.pure(Left("Invalid JWT type"))
-          }
-        else IO.pure(Left("Invalid JWT header"))
-    }
-
-  def verifyToken[T](token: String)(implicit dT: Decoder[T]): IO[Either[String, T]] =
-    JwtCirce.decodeJson(token, JwtOptions(signature = false, expiration = false, notBefore = false /* TODO */)) match {
-      case Failure(ex) => IO.pure(Left("Invalid JWT"))
-      case Success(value) =>
-        value.as[T] match {
-          case Left(ex) => IO.pure(Left("Invalid JWT"))
-          case Right(value) => IO.pure(Right(value))
-        }
-    }
-
-  def verifyTokenWithKey(token: String, key: String): IO[UserJwt] =
-    JwtCirce.decodeJson(token, key, Seq(JwtAlgorithm.Ed25519), JwtOptions(signature = false, expiration = false, notBefore = false /* TODO */)) match {
-      case Failure(ex) => IO.raiseError(AuthException("Invalid JWT", ex))
-      case Success(value) =>
-        value.as[UserJwt] match {
-          case Left(ex) => IO.raiseError(AuthException("Invalid JWT", ex))
-          case Right(value) => IO.pure(value)
-        }
-    }
-
-  def verifySignatureWithKey(data: String, signature: String, key: String): IO[Unit] =
-    if JwtUtils.verify(data.getBytes, Base64.getDecoder.decode(signature), parseKey(key), JwtAlgorithm.Ed25519) then IO.unit
-    else IO.raiseError(AuthException("Invalid JWT"))
-
-  def verifyB64SignatureWithKey(data: String, signature: String, key: String): IO[Unit] =
-    if JwtUtils.verify(Base64.getDecoder.decode(data), Base64.getDecoder.decode(signature), parseKey(key), JwtAlgorithm.Ed25519) then IO.unit
-    else IO.raiseError(AuthException("Bad signature"))
-
-  private def parseKey(raw: String): PublicKey =
-    val kf = KeyFactory.getInstance("Ed25519")
-    val pubKeyInfo = new SubjectPublicKeyInfo(new AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519), Base64.getDecoder.decode(raw))
-    kf.generatePublic(new X509EncodedKeySpec(pubKeyInfo.getEncoded))
-}

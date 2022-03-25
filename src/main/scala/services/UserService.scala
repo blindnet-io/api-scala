@@ -21,19 +21,19 @@ import org.http4s.implicits.*
 import org.http4s.server.AuthMiddleware
 
 class UserService(userRepo: UserRepository[IO]) {
-  private def authedRoutes = AuthedRoutes.of[AuthJwt, IO] {
+  def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
     // FR-BE01 Create User
     case req @ POST -> Root / "users" as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[CreateUserPayload]
-        rawJwt <- AuthJwt.getRawToken(req.req)
-        _ <- AuthJwt.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)
+        rawJwt <- AuthJwtUtils.getRawToken(req.req)
+        _ <- AuthJwtUtils.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)
         existing <- userRepo.findById(uJwt.userId)
         ret <- existing match {
           case Some(_) => BadRequest()
           case None => for {
-            _ <- AuthJwt.verifyB64SignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
+            _ <- AuthJwtUtils.verifyB64SignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
             _ <- userRepo.insert(User(
               uJwt.appId, uJwt.userId, uJwt.groupId,
               payload.publicEncryptionKey, payload.publicSigningKey,
@@ -125,9 +125,6 @@ class UserService(userRepo: UserRepository[IO]) {
       case Some(u) => IO.pure(UserPublicKeysResponse(u))
       case None => IO.raiseError(NotFoundException("User not found"))
     }
-
-//  private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(Forbidden(req.context))))
-  def routes: HttpRoutes[IO] = AuthJwt.authMiddleware(authedRoutes)
 }
 
 case class CreateUserPayload(

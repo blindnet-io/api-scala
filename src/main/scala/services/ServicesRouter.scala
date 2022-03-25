@@ -20,10 +20,13 @@ import org.http4s.implicits.*
 import org.http4s.server.*
 import org.http4s.server.middleware.*
 
-class ServicesRouter(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
+class ServicesRouter(appRepo: AppRepository[IO], userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
   private val userService = UserService(userRepo)
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo)
 
-  def routes: HttpRoutes[IO] = userService.routes <+> documentService.routes
+  private val authenticator = JwtAuthenticator(appRepo)
+
+  private def authedRoutes = userService.authedRoutes <+> documentService.authedRoutes
+  private def routes: HttpRoutes[IO] = authenticator.authMiddleware(authedRoutes)
   def corsRoutes: HttpRoutes[IO] = CORS.policy.withAllowOriginAll(routes)
 }

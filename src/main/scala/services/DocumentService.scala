@@ -22,7 +22,7 @@ import org.http4s.server.AuthMiddleware
 import java.util.UUID
 
 class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
-  private def authedRoutes = AuthedRoutes.of[AuthJwt, IO] {
+  def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
     // FR-BE06 Save Document Keys
     case req @ POST -> Root / "documents" as jwt =>
       for {
@@ -90,9 +90,6 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         ret <- Ok()
       } yield ret
   }
-
-//  private def authMiddleware = AuthMiddleware(AuthJwt.authenticate, Kleisli(req => OptionT.liftF(IO.raiseError(AuthException(req.context.asInstanceOf[String])))))
-  def routes: HttpRoutes[IO] = AuthJwt.authMiddleware(authedRoutes)
 }
 
 type CreateDocumentPayload = List[CreateDocumentItem]
