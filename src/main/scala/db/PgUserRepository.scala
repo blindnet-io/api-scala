@@ -41,4 +41,8 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
   override def delete(id: String): IO[Unit] =
     sql"delete from users where id=$id"
       .update.run.transact(xa).map(_ => ())
+
+  override def deleteAllByGroup(groupId: String): IO[Unit] =
+    sql"delete from users where group_id=$groupId"
+      .update.run.transact(xa).map(_ => ())
 }

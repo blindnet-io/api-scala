@@ -21,4 +21,5 @@ trait UserRepository[F[_]] {
   def updatePrivateKeys(id: String, encPrivateEncKey: String, encPrivateSignKey: String): F[Unit]
   def updatePrivateKeysAndSalt(id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): F[Unit]
   def delete(id: String): F[Unit]
+  def deleteAllByGroup(groupId: String): F[Unit]
 }

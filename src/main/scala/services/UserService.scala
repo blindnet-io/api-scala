@@ -126,6 +126,14 @@ class UserService(userRepo: UserRepository[IO]) {
         _ <- userRepo.delete(uJwt.userId)
         ret <- Ok()
       } yield ret
+
+    // FR-BE14 Delete Group
+    case req @ DELETE -> Root / "group" / groupId as jwt =>
+      for {
+        cJwt: ClientJwt <- jwt.asClient
+        _ <- userRepo.deleteAllByGroup(groupId)
+        ret <- Ok()
+      } yield ret
   }
 
   private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =
