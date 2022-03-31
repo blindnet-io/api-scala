@@ -3,7 +3,7 @@ ThisBuild / scalaVersion := "3.1.1"
 
 val circeVersion = "0.14.1"
 val doobieVersion = "1.0.0-RC1"
-val http4sVersion = "0.23.10"
+val http4sVersion = "0.23.11"
 
 lazy val root = (project in file("."))
   .settings(
@@ -12,7 +12,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "org.bouncycastle"       %  "bcprov-jdk15on"             % "1.70",
       "com.github.jwt-scala"   %% "jwt-circe"                  % "9.0.4",
-      "org.typelevel"          %% "cats-effect"                % "3.3.6",
+      "org.typelevel"          %% "cats-effect"                % "3.3.8",
       "org.typelevel"          %% "log4cats-slf4j"             % "2.2.0",
       "org.http4s"             %% "http4s-blaze-server"        % http4sVersion,
       "org.http4s"             %% "http4s-circe"               % http4sVersion,
