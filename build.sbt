@@ -12,7 +12,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "org.bouncycastle"       %  "bcprov-jdk15on"                % "1.70",
       "org.scalatest"          %% "scalatest"                     % "3.2.11" % Test,
-      "com.github.jwt-scala"   %% "jwt-circe"                     % "9.0.4",
+      "com.github.jwt-scala"   %% "jwt-circe"                     % "9.0.5",
       "org.typelevel"          %% "cats-effect"                   % "3.3.8",
       "org.typelevel"          %% "cats-effect-testing-scalatest" % "1.4.0" % Test,
       "org.typelevel"          %% "log4cats-slf4j"                % "2.2.0",
