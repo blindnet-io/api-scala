@@ -12,6 +12,7 @@ import pdi.jwt.*
 import java.security.{KeyFactory, PublicKey}
 import java.security.spec.X509EncodedKeySpec
 import java.util.Base64
+import scala.util.{Failure, Success, Try}
 
 object AuthJwtUtils {
   def getRawToken(req: Request[IO]): IO[String] =
@@ -26,16 +27,23 @@ object AuthJwtUtils {
       case None => IO.raiseError(AuthException("Missing or invalid authorization header"))
     }
 
+  def verifySignatureWithKey(data: Array[Byte], signature: String, key: String): IO[Unit] =
+    parseKey(key) match {
+      case Failure(ex) => IO.raiseError(ex)
+      case Success(parsedKey) =>
+        if JwtUtils.verify(data, Base64.getDecoder.decode(signature), parsedKey, JwtAlgorithm.Ed25519) then IO.unit
+        else IO.raiseError(AuthException("Bad signature"))
+    }
+
   def verifySignatureWithKey(data: String, signature: String, key: String): IO[Unit] =
-    if JwtUtils.verify(data.getBytes, Base64.getDecoder.decode(signature), parseKey(key), JwtAlgorithm.Ed25519) then IO.unit
-    else IO.raiseError(AuthException("Bad signature"))
+    verifySignatureWithKey(data.getBytes, signature, key)
 
   def verifyB64SignatureWithKey(data: String, signature: String, key: String): IO[Unit] =
-    if JwtUtils.verify(Base64.getDecoder.decode(data), Base64.getDecoder.decode(signature), parseKey(key), JwtAlgorithm.Ed25519) then IO.unit
-    else IO.raiseError(AuthException("Bad signature"))
+    verifySignatureWithKey(Base64.getDecoder.decode(data), signature, key)
 
-  def parseKey(raw: String): PublicKey =
+  def parseKey(raw: String): Try[PublicKey] = Try {
     val kf = KeyFactory.getInstance("Ed25519")
     val pubKeyInfo = SubjectPublicKeyInfo(AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519), Base64.getDecoder.decode(raw))
     kf.generatePublic(X509EncodedKeySpec(pubKeyInfo.getEncoded))
+  }
 }

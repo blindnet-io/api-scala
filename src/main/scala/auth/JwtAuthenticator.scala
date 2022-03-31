@@ -13,7 +13,7 @@ import pdi.jwt.*
 import pdi.jwt.algorithms.*
 
 import java.nio.charset.StandardCharsets
-import java.security.Signature
+import java.security.{PublicKey, Signature}
 import java.util.Base64
 import scala.util.{Failure, Success}
 
@@ -24,13 +24,16 @@ class JwtAuthenticator(appRepo: AppRepository[IO]) {
   val authMiddleware: AuthMiddleware[IO, AuthJwt] = AuthMiddleware(authenticate, Kleisli(req => OptionT.liftF(IO.raiseError(AuthException(req.context.asInstanceOf[String])))))
 
   def processToken(token: String): IO[Either[String, AuthJwt]] =
-    def getAppKey(claim: JwtClaim): IO[Either[String, String]] =
+    def getAppKey(claim: JwtClaim): IO[Either[String, PublicKey]] =
       parse(claim.content) match {
         case Left(failure) => IO.pure(Left("Invalid JWT claim: bad JSON"))
         case Right(json) => json.hcursor.downField("app").as[String] match {
           case Left(failure) => IO.pure(Left("Invalid JWT claim: no app id"))
           case Right(appId) => appRepo.findById(appId).flatMap {
-            case Some(app) => IO.pure(Right(app.publicKey))
+            case Some(app) => AuthJwtUtils.parseKey(app.publicKey) match {
+              case Failure(ex) => IO.raiseError(ex)
+              case Success(parsedKey) => IO.pure(Right(parsedKey))
+            }
             case None => IO.pure(Left("Unknown app"))
           }
         }
@@ -45,7 +48,7 @@ class JwtAuthenticator(appRepo: AppRepository[IO]) {
           val hdBytes = hd.getBytes(StandardCharsets.UTF_8)
           val signatureBytes = Base64.getUrlDecoder.decode(spl(2))
 
-          if JwtUtils.verify(hdBytes, signatureBytes, AuthJwtUtils.parseKey(key), JwtAlgorithm.Ed25519) then
+          if JwtUtils.verify(hdBytes, signatureBytes, key, JwtAlgorithm.Ed25519) then
             JwtCirce.decodeJson(token, JwtOptions(signature = false, expiration = true, notBefore = true)) match {
               case Failure(ex) => IO.pure(Left("Invalid JWT: " + ex.getMessage))
               case Success(value) =>
