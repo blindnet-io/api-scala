@@ -16,6 +16,10 @@ object ErrorHandler {
       _ <- logger.debug(e)("Authentication exception")
     } yield Response(Status.Forbidden).withEntity(e.getMessage)
 
+    case e: MessageFailure => for {
+      _ <- logger.debug(e)("Message handling exception")
+    } yield Response(Status.BadRequest)
+
     case e: Exception => for {
       _ <- logger.error(e)("Unhandled exception")
     } yield Response(Status.InternalServerError)
