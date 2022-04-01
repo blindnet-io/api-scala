@@ -10,6 +10,6 @@ object Main extends IOApp {
     
     for {
       _ <- Migrator.migrateDatabase(dbConfig)
-      _ <- Server.create(dbConfig).use(_ => IO.never)
+      _ <- App(dbConfig).server.use(_ => IO.never)
     } yield ExitCode.Success
 }
