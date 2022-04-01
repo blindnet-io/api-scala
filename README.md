@@ -15,5 +15,5 @@ All required, no default values.
 
 ## Database (PostgreSQL)
 
-[db.sql](db.sql) contains a dump of the current schema of the database, for documentation and importing purposes until
-we implement database migration.
+The backend uses Flyway for automated migrations on startup.
+testcontainers allows functional tests to be executed with a temporary database.
