@@ -13,7 +13,7 @@ import org.http4s.implicits.*
 import org.http4s.server.*
 import org.http4s.{HttpApp, Request, Response}
 
-class App(dbConfig: DbConfig) {
+class ServerApp(dbConfig: DbConfig) {
   val xa: Transactor[IO] = Transactor.fromDriverManager[IO](
     "org.postgresql.Driver", dbConfig.uri, dbConfig.username, dbConfig.password
   )
