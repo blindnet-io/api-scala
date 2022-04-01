@@ -14,9 +14,9 @@ import org.http4s.implicits.*
 import org.http4s.server.*
 
 object Server {
-  def server: Resource[IO, Server] =
+  def create(dbConfig: DbConfig): Resource[IO, Server] =
     val xa = Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver", sys.env("BN_DB_URI"), sys.env("BN_DB_USER"), sys.env("BN_DB_PASSWORD")
+      "org.postgresql.Driver", dbConfig.uri, dbConfig.username, dbConfig.password 
     )
     val appRepo = PgAppRepository(xa)
     val userRepo = PgUserRepository(xa)
@@ -32,5 +32,4 @@ object Server {
         .withServiceErrorHandler(ErrorHandler.handler)
         .resource
     } yield httpServer
-
 }

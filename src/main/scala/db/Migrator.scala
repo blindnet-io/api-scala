@@ -5,9 +5,9 @@ import cats.effect.*
 import org.flywaydb.core.Flyway
 
 object Migrator {
-  def migrateDatabase(): IO[Unit] = IO {
+  def migrateDatabase(config: DbConfig): IO[Unit] = IO {
     Flyway.configure()
-      .dataSource(sys.env("BN_DB_URI"), sys.env("BN_DB_USER"), sys.env("BN_DB_PASSWORD"))
+      .dataSource(config.uri, config.username, config.password)
       .group(true)
       .load()
       .migrate()
