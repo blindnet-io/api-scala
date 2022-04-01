@@ -83,7 +83,7 @@ class JwtUtilsSpec extends UnitSpec {
   }
 
   describe("parsePrivateKey") {
-    it("should parse an Ed25519 public key") {
+    it("should parse an Ed25519 private key") {
       val key = AuthJwtUtils.parsePrivateKey("tHVjn47TAc00IW6P0YYpn4KBipfH6BieSvRdn0GOdAo=")
       assert(key.isSuccess)
       assertResult("EdDSA")(key.get.getAlgorithm)
