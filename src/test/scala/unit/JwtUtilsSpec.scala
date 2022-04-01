@@ -82,6 +82,30 @@ class JwtUtilsSpec extends UnitSpec {
     }
   }
 
+  describe("parsePrivateKey") {
+    it("should parse an Ed25519 public key") {
+      val key = AuthJwtUtils.parsePrivateKey("tHVjn47TAc00IW6P0YYpn4KBipfH6BieSvRdn0GOdAo=")
+      assert(key.isSuccess)
+      assertResult("EdDSA")(key.get.getAlgorithm)
+    }
+
+    it("should fail on empty keys") {
+      assert(AuthJwtUtils.parsePrivateKey("").isFailure)
+    }
+
+    it("should fail on too short keys") {
+      assert(AuthJwtUtils.parsePrivateKey("kcXTU6oJl2gG5GAkcN8kaxB+Giz/ZRsFKEU2J+3hA4=").isFailure)
+    }
+
+    it("should fail on too long keys") {
+      assert(AuthJwtUtils.parsePrivateKey("bZECi85SPIZ8D/XNB98LIcxVVFv5TTUw7AyCxxRHQ5AI=").isFailure)
+    }
+
+    it("should fail on keys with invalid characters") {
+      assert(AuthJwtUtils.parsePrivateKey("1YpJdpqXzO9D40%+9g3cOuUoPWelElo/Fg4wEap10QM=").isFailure)
+    }
+  }
+
   describe("verifyB64SignatureWithKey") {
     val publicKey = "8rmnQL6BH6g3fXVuNtbJOV1PaOa8BtI/dJjKrJhLAVo="
     val data = "nlHcWRr89Mx0WFQtSge9wxlWsnLNUIH+y/beqG5/CZOpDHT/W5MDdgcAvM5Qj1hvNo2/gqRKQtGDwYM/RrS0mA=="

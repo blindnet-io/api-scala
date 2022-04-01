@@ -2,15 +2,17 @@ package io.blindnet.backend
 package auth
 
 import cats.effect.*
+import org.bouncycastle.asn1.DEROctetString
 import org.bouncycastle.asn1.edec.EdECObjectIdentifiers
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo
 import org.bouncycastle.asn1.x509.{AlgorithmIdentifier, SubjectPublicKeyInfo}
 import org.http4s.*
 import org.http4s.headers.*
 import org.typelevel.ci.*
 import pdi.jwt.*
 
-import java.security.{KeyFactory, PublicKey}
-import java.security.spec.X509EncodedKeySpec
+import java.security.{KeyFactory, PrivateKey, PublicKey}
+import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import java.util.Base64
 import scala.util.{Failure, Success, Try}
 
@@ -47,6 +49,12 @@ object AuthJwtUtils {
     val kf = KeyFactory.getInstance("Ed25519")
     val pubKeyInfo = SubjectPublicKeyInfo(AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519), Base64.getDecoder.decode(raw))
     kf.generatePublic(X509EncodedKeySpec(pubKeyInfo.getEncoded))
+  }
+
+  def parsePrivateKey(raw: String): Try[PrivateKey] = Try {
+    val kf = KeyFactory.getInstance("Ed25519")
+    val priv = PrivateKeyInfo(AlgorithmIdentifier(EdECObjectIdentifiers.id_Ed25519), DEROctetString(Base64.getDecoder.decode(raw)))
+    kf.generatePrivate(PKCS8EncodedKeySpec(priv.getEncoded))
   }
 
   def decodeBase64(data: String): IO[Array[Byte]] = Try {
