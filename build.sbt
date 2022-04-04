@@ -3,7 +3,7 @@ ThisBuild / scalaVersion := "3.1.1"
 
 Test / fork := true
 
-val circeVersion = "0.14.1"
+val circeVersion = "0.15.0-SNAPSHOT"
 val doobieVersion = "1.0.0-RC1"
 val http4sVersion = "0.23.11"
 
@@ -17,6 +17,8 @@ lazy val root = (project in file("."))
       "com.github.jwt-scala"   %% "jwt-circe"                       % "9.0.5",
       "io.circe"               %% "circe-core"                      % circeVersion,
       "io.circe"               %% "circe-generic"                   % circeVersion,
+      "io.circe"               %% "circe-literal"                   % circeVersion % Test,
+      "org.apache.commons"     %  "commons-lang3"                   % "3.12.0" % Test,
       "org.bouncycastle"       %  "bcprov-jdk15on"                  % "1.70",
       "org.flywaydb"           %  "flyway-core"                     % "8.5.4",
       "org.http4s"             %% "http4s-blaze-server"             % http4sVersion,
