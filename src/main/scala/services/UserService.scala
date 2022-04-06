@@ -13,7 +13,7 @@ import io.circe.generic.auto.*
 import io.circe.syntax.*
 import org.http4s.*
 import org.http4s.circe.*
-import org.http4s.circe.CirceEntityCodec.*
+import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.syntax.*
 import org.http4s.dsl.*
 import org.http4s.dsl.io.*
@@ -59,7 +59,7 @@ class UserService(userRepo: UserRepository[IO]) {
             encryptedPrivateSigningKey = u.encPrivateSignKey,
             keyDerivationSalt = u.keyDerivationSalt,
             signedPublicEncryptionKey = u.signedPublicEncKey, // TODO swagger vs FRD
-          ))
+          ).asJson)
           case None => NotFound()
         }
       } yield ret
@@ -71,7 +71,8 @@ class UserService(userRepo: UserRepository[IO]) {
     case req @ GET -> Root / "keys" as jwt =>
       for {
         uJwt: TempUserJwt <- jwt.asTempUser
-        ret <- Ok(uJwt.userIds.traverse(findUserPublicKeys))
+        keys <- uJwt.userIds.traverse(findUserPublicKeys)
+        ret <- Ok(keys.asJson)
       } yield ret
 
     // FR-BE03 Get User Public Keys
@@ -79,7 +80,8 @@ class UserService(userRepo: UserRepository[IO]) {
     case req @ GET -> Root / "keys" / userId as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
-        ret <- Ok(findUserPublicKeys(userId))
+        keys <- findUserPublicKeys(userId)
+        ret <- Ok(keys.asJson)
       } yield ret
 
     // FR-BE04 FR-BE05 Get Users Public Keys
@@ -90,11 +92,12 @@ class UserService(userRepo: UserRepository[IO]) {
         ret <- req.req.as[UsersPublicKeysPayload].flatMap {
           case GIDUsersPublicKeysPayload(groupID) =>
             if auJwt.containsGroup(groupID)
-            then Ok(userRepo.findAllByGroup(groupID).map(users => users.map(UserPublicKeysResponse.apply)))
+            then userRepo.findAllByGroup(groupID).map(users => users.map(UserPublicKeysResponse.apply)).flatMap(keys => Ok(keys.asJson))
             else Forbidden()
           case UIDUsersPublicKeysPayload(userIDs) => for {
             _ <- auJwt.containsUserIds(userIDs, userRepo)
-            ret <- Ok(userIDs.traverse(findUserPublicKeys))
+            keys <- userIDs.traverse(findUserPublicKeys)
+            ret <- Ok(keys.asJson)
           } yield ret
         }
       } yield ret
