@@ -34,4 +34,17 @@ case class AesKey(secretKey: SecretKey, salt: Array[Byte]) {
 
   def encryptToString(data: Array[Byte]): String =
     Base64.getEncoder.encodeToString(encrypt(data))
+
+  def decrypt(data: Array[Byte]): Array[Byte] = {
+    val iv = new Array[Byte](12)
+    val encrypted = new Array[Byte](data.length - 12)
+    ByteBuffer.wrap(data).get(iv).get(encrypted)
+
+    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+    cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(128, iv))
+    cipher.doFinal(encrypted)
+  }
+
+  def decryptFromString(data: String): Array[Byte] =
+    decrypt(Base64.getDecoder.decode(data))
 }

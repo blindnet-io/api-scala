@@ -27,14 +27,17 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
            "signedPublicEncryptionKey": ${testUser.sigKey.signToString(testUser.encKey.publicKeyBytes)}
     }"""
 
+  def createCompleteRequest(testApp: TestApp, testUser: TestUser, token: String): Request[IO] =
+    createAuthedRequest(token).withEntity(payload(testApp, testUser, token))
+
   override def testValidRequest(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
-    val token = testApp.createUserToken(testUser.id, "test_group")
+    val token = testApp.createUserToken(testUser.id, testUser.group)
 
     for {
       _ <- testApp.insert(serverApp)
-      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+      res <- run(createCompleteRequest(testApp, testUser, token))
       body <- res.as[String]
     } yield {
       assertResult(Status.Ok)(res.status)
@@ -45,7 +48,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
   override def testNoToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
-    val token = testApp.createUserToken(testUser.id, "test_group")
+    val token = testApp.createUserToken(testUser.id, testUser.group)
 
     for {
       _ <- testApp.insert(serverApp)
@@ -58,11 +61,11 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
   override def testTempUserTokenGid(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
-    val token = testApp.createTempUserToken("test_group")
+    val token = testApp.createTempUserToken(testUser.group)
 
     for {
       _ <- testApp.insert(serverApp)
-      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+      res <- run(createCompleteRequest(testApp, testUser, token))
     } yield {
       assertResult(Status.Forbidden)(res.status)
     }
@@ -75,7 +78,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
 
     for {
       _ <- testApp.insert(serverApp)
-      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+      res <- run(createCompleteRequest(testApp, testUser, token))
     } yield {
       assertResult(Status.Forbidden)(res.status)
     }
@@ -88,7 +91,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
 
     for {
       _ <- testApp.insert(serverApp)
-      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+      res <- run(createCompleteRequest(testApp, testUser, token))
     } yield {
       assertResult(Status.Forbidden)(res.status)
     }
@@ -97,13 +100,13 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
   it("should fail if user already exists") {
     val testApp = TestApp()
     val testUser = TestUser()
-    val token = testApp.createUserToken(testUser.id, "test_group")
+    val token = testApp.createUserToken(testUser.id, testUser.group)
 
     for {
       _ <- testApp.insert(serverApp)
-      _ <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+      _ <- run(createCompleteRequest(testApp, testUser, token))
         .asserting(res => assertResult(Status.Ok)(res.status))
-      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+      res <- run(createCompleteRequest(testApp, testUser, token))
     } yield {
       assertResult(Status.BadRequest)(res.status)
     }
@@ -112,7 +115,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
   it("should forbid bad JWT signature") {
     val testApp = TestApp()
     val testUser = TestUser()
-    val token = testApp.createUserToken(testUser.id, "test_group")
+    val token = testApp.createUserToken(testUser.id, testUser.group)
 
     val badPayload = payload(testApp, testUser, token).asObject.get.add("signedJwt", "badsign".asJson)
 
@@ -128,7 +131,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
   it("should forbid bad PK signature") {
     val testApp = TestApp()
     val testUser = TestUser()
-    val token = testApp.createUserToken(testUser.id, "test_group")
+    val token = testApp.createUserToken(testUser.id, testUser.group)
 
     val badPayload = payload(testApp, testUser, token).asObject.get.add("signedPublicEncryptionKey", "badsign".asJson)
 
