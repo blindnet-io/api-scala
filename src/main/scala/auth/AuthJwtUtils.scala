@@ -34,7 +34,11 @@ object AuthJwtUtils {
       parseKey(key) match {
         case Failure(ex) => IO.raiseError(ex)
         case Success(parsedKey) =>
-          if JwtUtils.verify(data, signatureBytes, parsedKey, JwtAlgorithm.Ed25519) then IO.unit
+          if
+            Try {
+              JwtUtils.verify(data, signatureBytes, parsedKey, JwtAlgorithm.Ed25519)
+            }.recover(_ => false).get
+          then IO.unit
           else IO.raiseError(AuthException("Bad signature"))
       }
     }

@@ -15,7 +15,7 @@ import pdi.jwt.algorithms.*
 import java.nio.charset.StandardCharsets
 import java.security.{PublicKey, Signature}
 import java.util.Base64
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class JwtAuthenticator(appRepo: AppRepository[IO]) {
   private val authenticate: Kleisli[IO, Request[IO], Either[String, AuthJwt]] = Kleisli { (req: Request[IO]) =>
@@ -48,7 +48,11 @@ class JwtAuthenticator(appRepo: AppRepository[IO]) {
           val hdBytes = hd.getBytes(StandardCharsets.UTF_8)
           val signatureBytes = Base64.getUrlDecoder.decode(spl(2))
 
-          if JwtUtils.verify(hdBytes, signatureBytes, key, JwtAlgorithm.Ed25519) then
+          if
+            Try {
+              JwtUtils.verify(hdBytes, signatureBytes, key, JwtAlgorithm.Ed25519)
+            }.recover(_ => false).get
+          then
             JwtCirce.decodeJson(token, JwtOptions(signature = false, expiration = true, notBefore = true)) match {
               case Failure(ex) => IO.pure(Left("Invalid JWT: " + ex.getMessage))
               case Success(value) =>
