@@ -25,16 +25,17 @@ import java.util.{Base64, Date, UUID}
 abstract class FuncSpec extends AsyncFunSpec with AsyncIOSpec with ForAllTestContainer {
   override val container: PostgreSQLContainer = PostgreSQLContainer(DockerImageName.parse("postgres:13"))
 
-  def createServerApp: ServerApp = ServerApp(DbConfig(container.jdbcUrl, container.username, container.password))
-
-  def request(token: String): Request[IO] =
-    Request[IO]().withHeaders(Headers(("Authorization", "Bearer " + token)))
+  private var _serverApp: Option[ServerApp] = None
+  def serverApp: ServerApp = _serverApp.get
     
-  def run(app: ServerApp, req: Request[IO]): IO[Response[IO]] =
-    app.app.run(req).handleErrorWith(ErrorHandler.handler(req)(_))
+  def run(req: Request[IO]): IO[Response[IO]] =
+    serverApp.app.run(req).handleErrorWith(ErrorHandler.handler(req)(_))
 
-  override def afterStart(): Unit =
-    Security.addProvider(BouncyCastleProvider());
+  override def afterStart(): Unit = {
+    Security.addProvider(BouncyCastleProvider())
+
+    _serverApp = Some(ServerApp(DbConfig(container.jdbcUrl, container.username, container.password)))
+  }
 
   describe("PostgreSQL container") {
     it("should be started") {
