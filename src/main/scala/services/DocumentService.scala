@@ -13,7 +13,7 @@ import io.circe.generic.auto.*
 import io.circe.syntax.*
 import org.http4s.*
 import org.http4s.circe.*
-import org.http4s.circe.CirceEntityDecoder.*
+import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.syntax.*
 import org.http4s.dsl.*
 import org.http4s.dsl.io.*
@@ -60,7 +60,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       for {
         uJwt: UserJwt <- jwt.asUser
         keys <- documentKeyRepo.findAllByUser(uJwt.appId, uJwt.userId)
-        ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)).asJson)
+        ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
 
     // FR-BE17 Get Documents And Keys
@@ -72,7 +72,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         _ <- if docs.size == payload.data_ids.size then IO.unit else IO.raiseError(NotFoundException())
         keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, payload.data_ids, uJwt.userId)
         _ <- if keys.size == payload.data_ids.size then IO.unit else IO.raiseError(AuthException())
-        ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)).asJson)
+        ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
 
     // FR-BE11 Delete Document

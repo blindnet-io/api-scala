@@ -5,11 +5,11 @@ import util.*
 
 import cats.effect.*
 import com.dimafeng.testcontainers.ContainerDef
-import io.circe.*
+import io.circe.Json
 import io.circe.literal.*
 import io.circe.syntax.*
 import org.http4s.*
-import org.http4s.circe.*
+import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.implicits.*
 import org.scalatest.Assertion
 

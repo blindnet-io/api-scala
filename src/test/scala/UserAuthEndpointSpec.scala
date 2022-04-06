@@ -6,6 +6,7 @@ import cats.effect.IO
 import io.circe.Json
 import io.circe.literal.*
 import org.http4s.*
+import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.implicits.*
 import org.scalatest.Assertion
 
