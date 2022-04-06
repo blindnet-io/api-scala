@@ -14,4 +14,16 @@ abstract class UserAuthEndpointSpec(path: String, method: Method) extends Endpoi
     createRequest()
       .withHeaders(Headers(("Authorization", "Bearer " + token)))
   }
+
+  def testNoToken(): IO[Assertion]
+  def testTempUserTokenGid(): IO[Assertion]
+  def testTempUserTokenUids(): IO[Assertion]
+  def testClientToken(): IO[Assertion]
+
+  describe("Authentication") {
+    it("should forbid no token")(testNoToken())
+    it("should forbid temp user tokens with group id")(testTempUserTokenGid())
+    it("should forbid temp user tokens with user ids")(testTempUserTokenUids())
+    it("should forbid client tokens")(testClientToken())
+  }
 }

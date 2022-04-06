@@ -7,10 +7,13 @@ import cats.effect.*
 import com.dimafeng.testcontainers.ContainerDef
 import io.circe.*
 import io.circe.literal.*
+import io.circe.syntax.*
 import org.http4s.*
 import org.http4s.circe.*
 import org.http4s.implicits.*
 import org.scalatest.Assertion
+
+import java.util.UUID
 
 class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
   def payload(testApp: TestApp, testUser: TestUser, token: String): Json =
@@ -27,17 +30,114 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
   override def testValidRequest(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
-    val token = testApp.createUserToken(testApp.id, testUser.id, "test_group")
-
-    val req = createAuthedRequest(token).withEntity(payload(testApp, testUser, token))
+    val token = testApp.createUserToken(testUser.id, "test_group")
 
     for {
       _ <- testApp.insert(serverApp)
-      res <- run(req)
+      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
       body <- res.as[String]
     } yield {
       assertResult(Status.Ok)(res.status)
       assertResult(testUser.id)(body)
+    }
+  }
+
+  override def testNoToken(): IO[Assertion] = {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val token = testApp.createUserToken(testUser.id, "test_group")
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createRequest().withEntity(payload(testApp, testUser, token)))
+    } yield {
+      assertResult(Status.Forbidden)(res.status)
+    }
+  }
+
+  override def testTempUserTokenGid(): IO[Assertion] = {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val token = testApp.createTempUserToken("test_group")
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+    } yield {
+      assertResult(Status.Forbidden)(res.status)
+    }
+  }
+
+  override def testTempUserTokenUids(): IO[Assertion] = {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val token = testApp.createTempUserToken(List(testUser.id))
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+    } yield {
+      assertResult(Status.Forbidden)(res.status)
+    }
+  }
+
+  override def testClientToken(): IO[Assertion] = {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val token = testApp.createClientToken()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+    } yield {
+      assertResult(Status.Forbidden)(res.status)
+    }
+  }
+
+  it("should fail if user already exists") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val token = testApp.createUserToken(testUser.id, "test_group")
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+        .asserting(res => assertResult(Status.Ok)(res.status))
+      res <- run(createAuthedRequest(token).withEntity(payload(testApp, testUser, token)))
+    } yield {
+      assertResult(Status.BadRequest)(res.status)
+    }
+  }
+
+  it("should forbid bad JWT signature") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val token = testApp.createUserToken(testUser.id, "test_group")
+
+    val badPayload = payload(testApp, testUser, token).asObject.get.add("signedJwt", "badsign".asJson)
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(token).withEntity(badPayload.asJson))
+      body <- res.as[String]
+    } yield {
+      assertResult(Status.Forbidden)(res.status)
+    }
+  }
+
+  it("should forbid bad PK signature") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val token = testApp.createUserToken(testUser.id, "test_group")
+
+    val badPayload = payload(testApp, testUser, token).asObject.get.add("signedPublicEncryptionKey", "badsign".asJson)
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(token).withEntity(badPayload.asJson))
+      body <- res.as[String]
+    } yield {
+      assertResult(Status.Forbidden)(res.status)
     }
   }
 }

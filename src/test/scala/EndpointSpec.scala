@@ -14,9 +14,5 @@ abstract class EndpointSpec(path: String, method: Method) extends FuncSpec {
 
   def testValidRequest(): IO[Assertion]
 
-  describe("Common tests") {
-    it("should accept a valid request") {
-      testValidRequest()
-    }
-  }
+  it("should accept a valid request")(testValidRequest())
 }
