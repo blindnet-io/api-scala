@@ -37,6 +37,7 @@ class GetSelfKeysSpec extends UserAuthEndpointSpec("keys/me", Method.GET) {
       assertResult(testUser.encKey.privateKeyBytes)(testUser.aes.decryptFromString(o("encryptedPrivateEncryptionKey").get.asString.get))
       assertResult(testUser.sigKey.privateKeyBytes)(testUser.aes.decryptFromString(o("encryptedPrivateSigningKey").get.asString.get))
       assertResult(testUser.saltString)(o("keyDerivationSalt").get.asString.get)
+      assertResult(7)(o.size)
     }
   }
 
