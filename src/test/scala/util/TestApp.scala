@@ -39,7 +39,7 @@ class TestApp(val id: String = UUID.randomUUID().toString) {
   def createClientToken(): String =
     val tid = UUID.randomUUID().toString
     val exp = Date(System.currentTimeMillis() + 60*60*1000).toString
-    val header = s"{\"alg\":\"EdDSA\",\"typ\":\"tjwt\"}"
+    val header = s"{\"alg\":\"EdDSA\",\"typ\":\"cjwt\"}"
     val payload = json"""{"app":$id,"tid":$tid,"exp":$exp}"""
     val hd = JwtBase64.encodeString(header) + "." + JwtBase64.encodeString(payload.noSpaces)
     hd + "." + JwtBase64.encodeString(key.sign(hd.getBytes))
