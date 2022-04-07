@@ -5,11 +5,11 @@ import util.*
 
 import cats.effect.*
 import com.dimafeng.testcontainers.ContainerDef
-import io.circe.Json
+import io.circe.*
 import io.circe.literal.*
 import io.circe.syntax.*
 import org.http4s.*
-import org.http4s.circe.CirceEntityEncoder.*
+import org.http4s.circe.*
 import org.http4s.implicits.*
 import org.scalatest.Assertion
 
@@ -38,10 +38,12 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
     for {
       _ <- testApp.insert(serverApp)
       res <- run(createCompleteRequest(testApp, testUser, token))
-      body <- res.as[String]
+      body <- res.as[Json]
     } yield {
       assertResult(Status.Ok)(res.status)
-      assertResult(testUser.id)(body)
+
+      assert(body.isString)
+      assertResult(testUser.id)(body.asString.get)
     }
   }
 
