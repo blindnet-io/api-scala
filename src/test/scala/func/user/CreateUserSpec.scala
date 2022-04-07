@@ -23,7 +23,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
            "signedJwt": ${testUser.sigKey.signToString(token.getBytes)},
            "encryptedPrivateEncryptionKey": ${testUser.aes.encryptToString(testUser.encKey.privateKeyBytes)},
            "encryptedPrivateSigningKey": ${testUser.aes.encryptToString(testUser.sigKey.privateKeyBytes)},
-           "keyDerivationSalt": ${testUser.aes.saltString},
+           "keyDerivationSalt": ${testUser.saltString},
            "signedPublicEncryptionKey": ${testUser.sigKey.signToString(testUser.encKey.publicKeyBytes)}
     }"""
 

@@ -21,8 +21,6 @@ object AesUtil {
 }
 
 case class AesKey(secretKey: SecretKey, salt: Array[Byte]) {
-  val saltString: String = Base64.getEncoder.encodeToString(salt)
-
   def encrypt(data: Array[Byte]): Array[Byte] = {
     val iv = RandomUtils.nextBytes(12)
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
