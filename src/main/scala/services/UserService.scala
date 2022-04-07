@@ -75,7 +75,6 @@ class UserService(userRepo: UserRepository[IO]) {
       } yield ret
 
     // FR-BE03 Get User Public Keys
-    // TODO Swagger is probably wrong here about returning an array - this impl matches SDK and FRD
     case req @ GET -> Root / "keys" / userId as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
