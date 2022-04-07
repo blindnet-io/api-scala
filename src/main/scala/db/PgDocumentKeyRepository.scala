@@ -35,9 +35,9 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
   override def updateOne(key: DocumentKey): IO[Unit] =
     sql"""update document_keys set enc_sym_key=${key.encSymmetricKey}
           where document_id=${key.documentId}::uuid and user_id=${key.userId} and app_id=${key.appId}::uuid"""
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedOne)
 
   override def deleteByUser(appId: String, userId: String): IO[Unit] =
     sql"delete from document_keys where app=$appId::uuid and user_id=$userId"
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedAtLeastOne)
 }

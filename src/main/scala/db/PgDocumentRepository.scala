@@ -26,5 +26,5 @@ class PgDocumentRepository(xa: Transactor[IO]) extends DocumentRepository[IO] {
 
   override def delete(appId: String, id: String): IO[Unit] =
     sql"delete from documents where app=$appId::uuid and id=$id"
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedOne)
 }

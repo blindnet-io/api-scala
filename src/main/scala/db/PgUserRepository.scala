@@ -31,18 +31,18 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
   override def updatePrivateKeys(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String): IO[Unit] =
     sql"""update users set enc_priv_enc_key=${encPrivateEncKey}, enc_priv_sign_key=${encPrivateSignKey}
           where app=$appId::uuid and users.id=${id}"""
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedOne)
 
   override def updatePrivateKeysAndSalt(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): IO[Unit] =
     sql"""update users set enc_priv_enc_key=${encPrivateEncKey}, enc_priv_sign_key=${encPrivateSignKey}, key_deriv_salt=${keyDerivationSalt}
           where app=$appId::uuid and users.id=${id}"""
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedOne)
 
   override def delete(appId: String, id: String): IO[Unit] =
     sql"delete from users where app=$appId::uuid and id=$id"
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedOne)
 
   override def deleteAllByGroup(appId: String, groupId: String): IO[Unit] =
     sql"delete from users where app=$appId::uuid and group_id=$groupId"
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedAtLeastOne)
 }
