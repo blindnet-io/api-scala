@@ -10,6 +10,9 @@ import java.util.{Date, UUID}
 class TestApp(val id: String = UUID.randomUUID().toString) {
   val key: EdKeyPair = EdUtil.createKeyPair()
 
+  def createUserToken(testUser: TestUser): String =
+    createUserToken(testUser.id, testUser.group)
+
   def createUserToken(userId: String, groupId: String): String =
     val exp = Date(System.currentTimeMillis() + 60*60*1000)
     val header = s"{\"alg\":\"EdDSA\",\"typ\":\"jwt\"}"

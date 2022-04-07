@@ -6,9 +6,9 @@ import org.http4s.*
 import org.scalatest.Assertion
 
 abstract class EndpointSpec(path: String, method: Method) extends FuncSpec {
-  def createRequest(): Request[IO] = {
+  def createRequest(params: String*): Request[IO] = {
     Request[IO]()
-      .withUri(Uri.unsafeFromString("https://test.blindnet.io/api/v1/" + path))
+      .withUri(Uri.unsafeFromString("https://test.blindnet.io/api/v1/" + String.format(path, params:_*)))
       .withMethod(method)
   }
 

@@ -11,8 +11,8 @@ import org.http4s.implicits.*
 import org.scalatest.Assertion
 
 abstract class UserAuthEndpointSpec(path: String, method: Method) extends EndpointSpec(path, method) {
-  def createAuthedRequest(token: String): Request[IO] = {
-    createRequest()
+  def createAuthedRequest(token: String, params: String*): Request[IO] = {
+    createRequest(params:_*)
       .withHeaders(Headers(("Authorization", "Bearer " + token)))
   }
 
