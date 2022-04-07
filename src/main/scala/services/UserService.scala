@@ -72,7 +72,6 @@ class UserService(userRepo: UserRepository[IO]) {
       } yield ret
 
     // FR-BE04 FR-BE05 Get Users Public Keys
-    // TODO FRD vs Swagger on allowing no params and using temp token ids instead - here assuming always params (FRD)
     case req @ POST -> Root / "keys" as jwt =>
       for {
         auJwt: AnyUserJwt <- jwt.asAnyUser
