@@ -99,4 +99,18 @@ class UpdatePrivateKeysSpec extends UserAuthEndpointSpec("keys/me", Method.PUT) 
       assertResult(Status.Forbidden)(res.status)
     }
   }
+
+  it("should fail if user does not exist") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val newUser = testUser.changePasswordAndSalt()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(testApp.createUserToken(newUser))
+        .withEntity(payload(newUser)))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
 }
