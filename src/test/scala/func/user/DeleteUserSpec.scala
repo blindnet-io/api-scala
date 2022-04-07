@@ -83,4 +83,19 @@ class DeleteUserSpec extends ClientAuthEndpointSpec("users/%s", Method.DELETE) {
       assertResult(Status.Forbidden)(res.status)
     }
   }
+
+  it("should fail if user belongs to another app") {
+    val testApp = TestApp()
+    val testApp2 = TestApp()
+    val testUser = TestUser()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testApp2.insert(serverApp)
+      _ <- testUser.insert(serverApp, testApp)
+      res <- run(createAuthedRequest(testApp2.createClientToken(), testUser.id))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
 }
