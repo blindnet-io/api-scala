@@ -52,13 +52,13 @@ class UserService(userRepo: UserRepository[IO]) {
         uJwt: UserJwt <- jwt.asUser
         ret <- userRepo.findById(uJwt.appId, uJwt.userId).flatMap {
           case Some(u) => Ok(UserKeysResponse(
-            userID = u.id, // TODO swagger vs FRD
+            userID = u.id,
             publicEncryptionKey = u.publicEncKey,
             publicSigningKey = u.publicSignKey,
             encryptedPrivateEncryptionKey = u.encPrivateEncKey,
             encryptedPrivateSigningKey = u.encPrivateSignKey,
             keyDerivationSalt = u.keyDerivationSalt,
-            signedPublicEncryptionKey = u.signedPublicEncKey, // TODO swagger vs FRD
+            signedPublicEncryptionKey = u.signedPublicEncKey,
           ))
           case None => NotFound()
         }
