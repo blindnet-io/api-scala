@@ -64,16 +64,6 @@ class UserService(userRepo: UserRepository[IO]) {
         }
       } yield ret
 
-    // TODO Does not match FRD nor Swagger but JS SDK expects it
-    // TODO Probably matches FR-BE03/4/5 (best 5 but not POST and no req params) but not exactly
-    // TODO Handle groups (?)
-    // Get Users Public Keys (from a temp user JWT)
-    case req @ GET -> Root / "keys" as jwt =>
-      for {
-        uJwt: TempUserJwt <- jwt.asTempUser
-        ret <- Ok(uJwt.userIds.traverse(findUserPublicKeys(uJwt.appId, _)))
-      } yield ret
-
     // FR-BE03 Get User Public Keys
     case req @ GET -> Root / "keys" / userId as jwt =>
       for {
