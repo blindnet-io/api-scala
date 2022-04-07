@@ -110,19 +110,19 @@ class UserService(userRepo: UserRepository[IO]) {
         ret <- Ok()
       } yield ret
 
-    // FR-BE13 Delete User
-    case req @ DELETE -> Root / "users" / userId as jwt =>
-      for {
-        cJwt: ClientJwt <- jwt.asClient
-        _ <- userRepo.delete(cJwt.appId, userId)
-        ret <- Ok()
-      } yield ret
-
     // FR-UM04 Delete Self User
     case req @ DELETE -> Root / "users" / "me" as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
         _ <- userRepo.delete(uJwt.appId, uJwt.userId)
+        ret <- Ok()
+      } yield ret
+
+    // FR-BE13 Delete User
+    case req @ DELETE -> Root / "users" / userId as jwt =>
+      for {
+        cJwt: ClientJwt <- jwt.asClient
+        _ <- userRepo.delete(cJwt.appId, userId)
         ret <- Ok()
       } yield ret
 
