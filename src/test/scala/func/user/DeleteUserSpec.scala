@@ -98,4 +98,16 @@ class DeleteUserSpec extends ClientAuthEndpointSpec("users/%s", Method.DELETE) {
       assertResult(Status.NotFound)(res.status)
     }
   }
+
+  it("should fail if user does not exist") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(testApp.createClientToken(), testUser.id))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
 }
