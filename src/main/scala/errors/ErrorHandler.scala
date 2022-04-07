@@ -12,13 +12,18 @@ object ErrorHandler {
   val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   val handler: Request[IO] => PartialFunction[Throwable, IO[Response[IO]]] = req => {
-    case e: AuthException => for {
-      _ <- logger.debug(e)("Authentication exception")
-    } yield Response(Status.Forbidden).withEntity(e.getMessage)
 
     case e: MessageFailure => for {
       _ <- logger.debug(e)("Message handling exception")
     } yield Response(Status.BadRequest)
+
+    case e: AuthException => for {
+      _ <- logger.debug(e)("Authentication exception")
+    } yield Response(Status.Forbidden).withEntity(e.getMessage)
+
+    case e: NotFoundException => for {
+      _ <- logger.debug(e)("NotFound exception")
+    } yield Response(Status.NotFound)
 
     case e: Exception => for {
       _ <- logger.error(e)("Unhandled exception")
