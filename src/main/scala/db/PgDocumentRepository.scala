@@ -11,12 +11,12 @@ import doobie.postgres.*
 import doobie.postgres.implicits.*
 
 class PgDocumentRepository(xa: Transactor[IO]) extends DocumentRepository[IO] {
-  override def findAllByIds(ids: List[String]): IO[List[Document]] =
-    sql"select id, app from documents where id in $ids::uuid[]"
+  override def findAllByIds(appId: String, ids: List[String]): IO[List[Document]] =
+    sql"select id, app from documents where app=$appId::uuid and id in $ids::uuid[]"
       .query[Document].to[List].transact(xa)
 
-  override def findById(id: String): IO[Option[Document]] =
-    sql"select id, app from documents where id=$id::uuid"
+  override def findById(appId: String, id: String): IO[Option[Document]] =
+    sql"select id, app from documents where app=$appId::uuid and id=$id::uuid"
       .query[Document].option.transact(xa)
 
   override def insert(doc: Document): IO[Unit] =
@@ -24,7 +24,7 @@ class PgDocumentRepository(xa: Transactor[IO]) extends DocumentRepository[IO] {
           values (${doc.id}::uuid, ${doc.appId}::uuid)"""
       .update.run.transact(xa).map(_ => ())
 
-  override def delete(id: String): IO[Unit] =
-    sql"delete from documents where id=$id"
+  override def delete(appId: String, id: String): IO[Unit] =
+    sql"delete from documents where app=$appId::uuid and id=$id"
       .update.run.transact(xa).map(_ => ())
 }

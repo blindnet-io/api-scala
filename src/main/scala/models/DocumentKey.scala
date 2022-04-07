@@ -15,5 +15,5 @@ trait DocumentKeyRepository[F[_]] {
   def findByDocumentAndUser(appId: String, docId: String, userId: String): F[Option[DocumentKey]]
   def insert(key: DocumentKey): F[Unit]
   def updateOne(key: DocumentKey): F[Unit]
-  def deleteByUser(userId: String): F[Unit]
+  def deleteByUser(appId: String, userId: String): F[Unit]
 }

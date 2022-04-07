@@ -11,16 +11,16 @@ import doobie.postgres.*
 import doobie.postgres.implicits.*
 
 class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
-  override def countByIdsOutsideGroup(groupId: String, usersId: List[String]): IO[Long] =
-    sql"select count(*) from users where id in $usersId and group_id != $groupId"
+  override def countByIdsOutsideGroup(appId: String, groupId: String, usersId: List[String]): IO[Long] =
+    sql"select count(*) from users where app=$appId::uuid and id in $usersId and group_id != $groupId"
       .query[Long].unique.transact(xa)
 
-  override def findAllByGroup(groupId: String): IO[List[User]] =
-    sql"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where group_id=$groupId"
+  override def findAllByGroup(appId: String, groupId: String): IO[List[User]] =
+    sql"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where app=$appId::uuid and group_id=$groupId"
       .query[User].to[List].transact(xa)
 
-  override def findById(id: String): IO[Option[User]] =
-    sql"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where id=$id"
+  override def findById(appId: String, id: String): IO[Option[User]] =
+    sql"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where app=$appId::uuid and id=$id"
       .query[User].option.transact(xa)
 
   override def insert(user: User): IO[Unit] =
@@ -28,21 +28,21 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
           values (${user.appId}::uuid, ${user.id}, ${user.groupId}, ${user.publicEncKey}, ${user.publicSignKey}, ${user.signedPublicEncKey}, ${user.encPrivateEncKey}, ${user.encPrivateSignKey}, ${user.keyDerivationSalt})"""
       .update.run.transact(xa).map(_ => ())
 
-  override def updatePrivateKeys(id: String, encPrivateEncKey: String, encPrivateSignKey: String): IO[Unit] =
+  override def updatePrivateKeys(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String): IO[Unit] =
     sql"""update users set enc_priv_enc_key=${encPrivateEncKey}, enc_priv_sign_key=${encPrivateSignKey}
-          where users.id=${id}"""
+          where app=$appId::uuid and users.id=${id}"""
       .update.run.transact(xa).map(_ => ())
 
-  override def updatePrivateKeysAndSalt(id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): IO[Unit] =
+  override def updatePrivateKeysAndSalt(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): IO[Unit] =
     sql"""update users set enc_priv_enc_key=${encPrivateEncKey}, enc_priv_sign_key=${encPrivateSignKey}, key_deriv_salt=${keyDerivationSalt}
-          where users.id=${id}"""
+          where app=$appId::uuid and users.id=${id}"""
       .update.run.transact(xa).map(_ => ())
 
-  override def delete(id: String): IO[Unit] =
-    sql"delete from users where id=$id"
+  override def delete(appId: String, id: String): IO[Unit] =
+    sql"delete from users where app=$appId::uuid and id=$id"
       .update.run.transact(xa).map(_ => ())
 
-  override def deleteAllByGroup(groupId: String): IO[Unit] =
-    sql"delete from users where group_id=$groupId"
+  override def deleteAllByGroup(appId: String, groupId: String): IO[Unit] =
+    sql"delete from users where app=$appId::uuid and group_id=$groupId"
       .update.run.transact(xa).map(_ => ())
 }

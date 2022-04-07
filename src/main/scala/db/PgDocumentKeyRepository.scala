@@ -37,7 +37,7 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
           where document_id=${key.documentId}::uuid and user_id=${key.userId} and app_id=${key.appId}::uuid"""
       .update.run.transact(xa).map(_ => ())
 
-  override def deleteByUser(userId: String): IO[Unit] =
-    sql"delete from document_keys where user_id=$userId"
+  override def deleteByUser(appId: String, userId: String): IO[Unit] =
+    sql"delete from document_keys where app=$appId::uuid and user_id=$userId"
       .update.run.transact(xa).map(_ => ())
 }

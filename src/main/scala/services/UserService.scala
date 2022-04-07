@@ -29,7 +29,7 @@ class UserService(userRepo: UserRepository[IO]) {
         payload <- req.req.as[CreateUserPayload]
         rawJwt <- AuthJwtUtils.getRawToken(req.req)
         _ <- AuthJwtUtils.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)
-        existing <- userRepo.findById(uJwt.userId)
+        existing <- userRepo.findById(uJwt.appId, uJwt.userId)
         ret <- existing match {
           case Some(_) => BadRequest()
           case None => for {
@@ -50,7 +50,7 @@ class UserService(userRepo: UserRepository[IO]) {
     case req @ GET -> Root / "keys" / "me" as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
-        ret <- userRepo.findById(uJwt.userId).flatMap {
+        ret <- userRepo.findById(uJwt.appId, uJwt.userId).flatMap {
           case Some(u) => Ok(UserKeysResponse(
             userID = u.id, // TODO swagger vs FRD
             publicEncryptionKey = u.publicEncKey,
@@ -71,14 +71,14 @@ class UserService(userRepo: UserRepository[IO]) {
     case req @ GET -> Root / "keys" as jwt =>
       for {
         uJwt: TempUserJwt <- jwt.asTempUser
-        ret <- Ok(uJwt.userIds.traverse(findUserPublicKeys))
+        ret <- Ok(uJwt.userIds.traverse(findUserPublicKeys(uJwt.appId, _)))
       } yield ret
 
     // FR-BE03 Get User Public Keys
     case req @ GET -> Root / "keys" / userId as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
-        ret <- Ok(findUserPublicKeys(userId))
+        ret <- Ok(findUserPublicKeys(uJwt.appId, userId))
       } yield ret
 
     // FR-BE04 FR-BE05 Get Users Public Keys
@@ -89,11 +89,11 @@ class UserService(userRepo: UserRepository[IO]) {
         ret <- req.req.as[UsersPublicKeysPayload].flatMap {
           case GIDUsersPublicKeysPayload(groupID) =>
             if auJwt.containsGroup(groupID)
-            then Ok(userRepo.findAllByGroup(groupID).map(users => users.map(UserPublicKeysResponse.apply)))
+            then Ok(userRepo.findAllByGroup(auJwt.appId, groupID).map(users => users.map(UserPublicKeysResponse.apply)))
             else Forbidden()
           case UIDUsersPublicKeysPayload(userIDs) => for {
             _ <- auJwt.containsUserIds(userIDs, userRepo)
-            ret <- Ok(userIDs.traverse(findUserPublicKeys))
+            ret <- Ok(userIDs.traverse(findUserPublicKeys(auJwt.appId, _)))
           } yield ret
         }
       } yield ret
@@ -104,8 +104,8 @@ class UserService(userRepo: UserRepository[IO]) {
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[UpdateUserPrivateKeysPayload]
         _ <- payload.keyDerivationSalt match {
-          case Some(salt) => userRepo.updatePrivateKeysAndSalt(uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, salt)
-          case None => userRepo.updatePrivateKeys(uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey)
+          case Some(salt) => userRepo.updatePrivateKeysAndSalt(uJwt.appId, uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, salt)
+          case None => userRepo.updatePrivateKeys(uJwt.appId, uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey)
         }
         ret <- Ok()
       } yield ret
@@ -114,7 +114,7 @@ class UserService(userRepo: UserRepository[IO]) {
     case req @ DELETE -> Root / "users" / userId as jwt =>
       for {
         cJwt: ClientJwt <- jwt.asClient
-        _ <- userRepo.delete(userId)
+        _ <- userRepo.delete(cJwt.appId, userId)
         ret <- Ok()
       } yield ret
 
@@ -122,7 +122,7 @@ class UserService(userRepo: UserRepository[IO]) {
     case req @ DELETE -> Root / "users" / "me" as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
-        _ <- userRepo.delete(uJwt.userId)
+        _ <- userRepo.delete(uJwt.appId, uJwt.userId)
         ret <- Ok()
       } yield ret
 
@@ -130,13 +130,13 @@ class UserService(userRepo: UserRepository[IO]) {
     case req @ DELETE -> Root / "group" / groupId as jwt =>
       for {
         cJwt: ClientJwt <- jwt.asClient
-        _ <- userRepo.deleteAllByGroup(groupId)
+        _ <- userRepo.deleteAllByGroup(cJwt.appId, groupId)
         ret <- Ok()
       } yield ret
   }
 
-  private def findUserPublicKeys(id: String): IO[UserPublicKeysResponse] =
-    userRepo.findById(id).flatMap {
+  private def findUserPublicKeys(appId: String, id: String): IO[UserPublicKeysResponse] =
+    userRepo.findById(appId, id).flatMap {
       case Some(u) => IO.pure(UserPublicKeysResponse(u))
       case None => IO.raiseError(NotFoundException("User not found"))
     }

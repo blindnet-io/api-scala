@@ -28,7 +28,7 @@ sealed trait AnyUserJwt extends AuthJwt {
     case tuJwt: TempUserJwt =>
       if tuJwt.userIds.containsSlice(userIds) then IO.unit
       else tuJwt.groupId match {
-        case Some(groupId) => userRepo.countByIdsOutsideGroup(groupId, userIds).flatMap {
+        case Some(groupId) => userRepo.countByIdsOutsideGroup(tuJwt.appId, groupId, userIds).flatMap {
           wrongUsers => if wrongUsers == 0 then IO.unit else IO.raiseError(AuthException("Temporary token lacks permission for some users"))
         }
         case None => IO.raiseError(AuthException("Temporary token lacks permission for some users"))

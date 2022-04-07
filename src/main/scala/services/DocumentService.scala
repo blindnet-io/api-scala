@@ -68,7 +68,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       for {
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[GetDocsAndKeysPayload]
-        docs <- documentRepo.findAllByIds(payload.data_ids)
+        docs <- documentRepo.findAllByIds(uJwt.appId, payload.data_ids)
         _ <- if docs.size == payload.data_ids.size then IO.unit else IO.raiseError(NotFoundException())
         keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, payload.data_ids, uJwt.userId)
         _ <- if keys.size == payload.data_ids.size then IO.unit else IO.raiseError(AuthException())
@@ -79,7 +79,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
     case req @ DELETE -> Root / "documents" / docId as jwt =>
       for {
         cJwt: ClientJwt <- jwt.asClient
-        _ <- documentRepo.delete(docId)
+        _ <- documentRepo.delete(cJwt.appId, docId)
         ret <- Ok()
       } yield ret
 
@@ -87,7 +87,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
     case req @ DELETE -> Root / "documents" / "user" / userId as jwt =>
       for {
         cJwt: ClientJwt <- jwt.asClient
-        _ <- documentKeyRepo.deleteByUser(userId)
+        _ <- documentKeyRepo.deleteByUser(cJwt.appId, userId)
         ret <- Ok()
       } yield ret
   }

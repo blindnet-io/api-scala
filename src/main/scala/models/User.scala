@@ -14,12 +14,12 @@ case class User(
 )
 
 trait UserRepository[F[_]] {
-  def countByIdsOutsideGroup(groupId: String, usersId: List[String]): F[Long]
-  def findAllByGroup(groupId: String): F[List[User]]
-  def findById(id: String): F[Option[User]]
+  def countByIdsOutsideGroup(appId: String, groupId: String, usersId: List[String]): F[Long]
+  def findAllByGroup(appId: String, groupId: String): F[List[User]]
+  def findById(appId: String, id: String): F[Option[User]]
   def insert(user: User): F[Unit]
-  def updatePrivateKeys(id: String, encPrivateEncKey: String, encPrivateSignKey: String): F[Unit]
-  def updatePrivateKeysAndSalt(id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): F[Unit]
-  def delete(id: String): F[Unit]
-  def deleteAllByGroup(groupId: String): F[Unit]
+  def updatePrivateKeys(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String): F[Unit]
+  def updatePrivateKeysAndSalt(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): F[Unit]
+  def delete(appId: String, id: String): F[Unit]
+  def deleteAllByGroup(appId: String, groupId: String): F[Unit]
 }
