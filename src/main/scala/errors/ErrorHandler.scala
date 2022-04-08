@@ -12,6 +12,9 @@ object ErrorHandler {
   val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   val handler: Request[IO] => PartialFunction[Throwable, IO[Response[IO]]] = req => {
+    case e: BadRequestException => for {
+      _ <- logger.debug(e)("Bad request exception")
+    } yield Response(Status.BadRequest)
 
     case e: MessageFailure => for {
       _ <- logger.debug(e)("Message handling exception")
