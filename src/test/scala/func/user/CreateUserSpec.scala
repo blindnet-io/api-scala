@@ -39,11 +39,20 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
       _ <- testApp.insert(serverApp)
       res <- run(createCompleteRequest(testApp, testUser, token))
       body <- res.as[Json]
+      dbUser <- serverApp.userRepo.findById(testApp.id, testUser.id)
     } yield {
       assertResult(Status.Ok)(res.status)
 
       assert(body.isString)
       assertResult(testUser.id)(body.asString.get)
+
+      assert(dbUser.isDefined)
+      assertResult(testUser.encKey.publicKeyString)(dbUser.get.publicEncKey)
+      assertResult(testUser.sigKey.publicKeyString)(dbUser.get.publicSignKey)
+      assertResult(testUser.encKey.privateKeyBytes)(testUser.aes.decryptFromString(dbUser.get.encPrivateEncKey))
+      assertResult(testUser.sigKey.privateKeyBytes)(testUser.aes.decryptFromString(dbUser.get.encPrivateSignKey))
+      assertResult(testUser.saltString)(dbUser.get.keyDerivationSalt)
+      assertResult(testUser.sigKey.signToString(testUser.encKey.publicKeyBytes))(dbUser.get.signedPublicEncKey)
     }
   }
 
