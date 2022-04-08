@@ -45,7 +45,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         _ <- payload.traverse(item => documentKeyRepo.findByDocumentAndUser(uJwt.appId, item.documentID, userId)
           .flatMap(o => if o.isDefined then IO.raiseError(BadRequestException()) else IO.unit))
         _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
-        ret <- Ok()
+        ret <- Ok(true)
       } yield ret
 
     // FR-BE07 Get Document Key
