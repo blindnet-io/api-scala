@@ -29,7 +29,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       for {
         auJwt: AnyUserJwt <- jwt.asAnyUser
         payload <- req.req.as[CreateDocumentPayload]
-        _ <- if payload.size != 0 then IO.unit else IO.raiseError(BadRequestException())
+        _ <- if payload.nonEmpty then IO.unit else IO.raiseError(BadRequestException())
         _ <- auJwt.containsUserIds(payload.map(item => item.userID), userRepo)
         doc = Document(auJwt.appId, UUID.randomUUID().toString)
         _ <- documentRepo.insert(doc)
