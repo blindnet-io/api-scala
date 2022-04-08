@@ -7,20 +7,26 @@ import java.nio.ByteBuffer
 import java.security.{KeyPairGenerator, PrivateKey, PublicKey}
 import java.util.Base64
 import javax.crypto.spec.{GCMParameterSpec, PBEKeySpec, SecretKeySpec}
-import javax.crypto.{Cipher, SecretKey, SecretKeyFactory}
+import javax.crypto.{Cipher, KeyGenerator, SecretKey, SecretKeyFactory}
 
 object AesUtil {
   def createKey(password: String, salt: Array[Byte]): AesKey = {
     val gen = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
     val spec = PBEKeySpec(password.toCharArray, salt, 100000, 256)
-    AesKey(
-      SecretKeySpec(gen.generateSecret(spec).getEncoded, "AES"),
-      salt
-    )
+    AesKey(SecretKeySpec(gen.generateSecret(spec).getEncoded, "AES"))
+  }
+
+  def createKey(): AesKey = {
+    val gen = KeyGenerator.getInstance("AES")
+    gen.init(256)
+    AesKey(gen.generateKey())
   }
 }
 
-case class AesKey(secretKey: SecretKey, salt: Array[Byte]) {
+case class AesKey(secretKey: SecretKey) {
+  def secretKeyBytes: Array[Byte] = secretKey.getEncoded
+  def secretKeyString: String = Base64.getEncoder.encodeToString(secretKeyBytes)
+
   def encrypt(data: Array[Byte]): Array[Byte] = {
     val iv = RandomUtils.nextBytes(12)
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
