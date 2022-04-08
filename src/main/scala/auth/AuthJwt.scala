@@ -44,8 +44,19 @@ sealed trait AnyUserJwt extends AuthJwt {
 case class UserJwt(appId: String, userId: String, groupId: String) extends AnyUserJwt
 implicit val dUserAuthJwt: Decoder[UserJwt] = Decoder.forProduct3("app", "uid", "gid")(UserJwt.apply)
 
-case class TempUserJwt(appId: String, groupId: Option[String], tokenId: String, userIds: Seq[String]) extends AnyUserJwt
-implicit val dTempUserAuthJwt: Decoder[TempUserJwt] = Decoder.forProduct4("app", "gid", "tid", "uids")(TempUserJwt.apply)
+case class TempUserJwt(appId: String, groupId: Option[String], tokenId: String, userIds: List[String]) extends AnyUserJwt
+implicit val dTempUserAuthJwt: Decoder[TempUserJwt] = (c: HCursor) => 
+  if c.downField("gid").succeeded
+  then for {
+      app <- c.downField("app").as[String]
+      gid <- c.downField("gid").as[String]
+      tid <- c.downField("tid").as[String]
+    } yield TempUserJwt(app, Some(gid), tid, Nil)
+  else for {
+    app <- c.downField("app").as[String]
+    uids <- c.downField("uids").as[List[String]]
+    tid <- c.downField("tid").as[String]
+  } yield TempUserJwt(app, None, tid, uids)
 
 case class ClientJwt(appId: String, tokenId: String) extends AuthJwt
 implicit val dClientAuthJwt: Decoder[ClientJwt] = Decoder.forProduct2("app", "tid")(ClientJwt.apply)
