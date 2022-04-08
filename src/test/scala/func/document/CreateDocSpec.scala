@@ -16,7 +16,7 @@ import org.scalatest.Assertion
 
 import java.util.UUID
 
-class SaveDocKeysSpec extends AnyUserAuthEndpointSpec("documents", Method.POST) {
+class CreateDocSpec extends AnyUserAuthEndpointSpec("documents", Method.POST) {
   def payload(testUsers: List[TestUser], aesKey: AesKey): Json =
     testUsers.map(testUser => {
       json"""{

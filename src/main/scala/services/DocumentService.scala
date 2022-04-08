@@ -24,7 +24,7 @@ import java.util.UUID
 
 class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
   def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
-    // FR-BE06 Save Document Keys
+    // FR-BE06 Create Document
     case req @ POST -> Root / "documents" as jwt =>
       for {
         auJwt: AnyUserJwt <- jwt.asAnyUser
@@ -37,12 +37,14 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         res <- Ok(doc.id)
       } yield res
 
-    // FR-BE10 Update All User Keys
+    // FR-BE10 Add User Document Keys
     case req @ PUT -> Root / "documents" / "keys" / "user" / userId as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
-        payload <- req.req.as[UpdateUserKeysPayload]
-        _ <- payload.traverse(item => documentKeyRepo.updateOne(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
+        payload <- req.req.as[AddUserKeysPayload]
+        _ <- payload.traverse(item => documentKeyRepo.findByDocumentAndUser(uJwt.appId, item.documentID, userId)
+          .flatMap(o => if o.isDefined then IO.raiseError(BadRequestException()) else IO.unit))
+        _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
         ret <- Ok()
       } yield ret
 
@@ -100,8 +102,8 @@ case class CreateDocumentItem(
   encryptedSymmetricKey: String
 )
 
-type UpdateUserKeysPayload = Seq[UpdateUserKeysItem]
-case class UpdateUserKeysItem(
+type AddUserKeysPayload = Seq[AddUserKeysItem]
+case class AddUserKeysItem(
   documentID: String,
   encryptedSymmetricKey: String
 )
