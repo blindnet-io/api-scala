@@ -3,6 +3,7 @@ package db
 
 import models.{DocumentKey, DocumentKeyRepository}
 
+import cats.data.NonEmptyList
 import cats.effect.*
 import cats.implicits.*
 import doobie.*
@@ -20,8 +21,11 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
       .query[DocumentKey].to[List].transact(xa)
 
   override def findAllByDocumentsAndUser(appId: String, docIds: List[String], userId: String): IO[List[DocumentKey]] =
-    sql"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId::uuid and user_id=$userId and document_id in $docIds::uuid[]"
-      .query[DocumentKey].to[List].transact(xa)
+    NonEmptyList.fromList(docIds) match
+      case Some(nel) => (fr"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId::uuid and user_id=$userId"
+        ++ Fragments.in(fr"document_id", nel) ++ sql"::uuid[]")
+        .query[DocumentKey].to[List].transact(xa)
+      case None => IO.pure(Nil)
 
   override def findByDocumentAndUser(appId: String, docId: String, userId: String): IO[Option[DocumentKey]] =
     sql"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId::uuid and document_id=$docId::uuid and user_id=$userId"

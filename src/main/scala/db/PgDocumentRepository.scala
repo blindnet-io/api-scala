@@ -3,6 +3,7 @@ package db
 
 import models.{Document, DocumentRepository}
 
+import cats.data.NonEmptyList
 import cats.effect.*
 import cats.implicits.*
 import doobie.*
@@ -12,8 +13,11 @@ import doobie.postgres.implicits.*
 
 class PgDocumentRepository(xa: Transactor[IO]) extends DocumentRepository[IO] {
   override def findAllByIds(appId: String, ids: List[String]): IO[List[Document]] =
-    sql"select app, id from documents where app=$appId::uuid and id in $ids::uuid[]"
-      .query[Document].to[List].transact(xa)
+    NonEmptyList.fromList(ids) match
+      case Some(nel) => fr"select app, id from documents where app=$appId::uuid and id::text in $ids"
+        ++ Fragments.in(fr"id", nel) ++ sql"::uuid[]")
+        .query[Document].to[List].transact(xa)
+      case None => IO.pure(Nil)
 
   override def findById(appId: String, id: String): IO[Option[Document]] =
     sql"select app, id from documents where app=$appId::uuid and id=$id::uuid"
