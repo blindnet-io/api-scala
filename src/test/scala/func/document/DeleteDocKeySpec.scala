@@ -119,4 +119,41 @@ class DeleteDocKeySpec extends ClientAuthEndpointSpec("documents/%s/keys/%s", Me
       assertResult(Status.Forbidden)(res.status)
     }
   }
+
+  it("should fail if document does not exist") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val testUserKeep = TestUser()
+    val token = testApp.createTempUserToken(List(testUser.id, testUserKeep.id))
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testUser.insert(serverApp, testApp)
+      _ <- testUserKeep.insert(serverApp, testApp)
+      _ <- run(CreateDocSpec().createCompleteRequest(List(testUser, testUserKeep), aesKey, token))
+      res <- run(createAuthedRequest(testApp.createClientToken(), UUID.randomUUID().toString, testUser.id))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
+
+  it("should fail if user key does not exist") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val testUserKeep = TestUser()
+    val token = testApp.createTempUserToken(List(testUser.id, testUserKeep.id))
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testUser.insert(serverApp, testApp)
+      _ <- testUserKeep.insert(serverApp, testApp)
+      docRes <- run(CreateDocSpec().createCompleteRequest(List(testUserKeep), aesKey, token))
+      docId <- docRes.as[Json].map(_.asString.get)
+      res <- run(createAuthedRequest(testApp.createClientToken(), docId, testUser.id))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
 }
