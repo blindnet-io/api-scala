@@ -93,6 +93,15 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         _ <- documentKeyRepo.deleteByUser(cJwt.appId, userId)
         ret <- Ok()
       } yield ret
+
+    // FR-BE18 Delete Document Key
+    // TODO discuss this path: we have a mix of "keys" and "users" in this service but they are basically the same
+    case req @ DELETE -> Root / "documents" / docId / "keys" / userId as jwt =>
+      for {
+        cJwt: ClientJwt <- jwt.asClient
+        _ <- documentKeyRepo.deleteByDocumentAndUser(cJwt.appId, docId, userId)
+        ret <- Ok()
+      } yield ret
   }
 }
 
