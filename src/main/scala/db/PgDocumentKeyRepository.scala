@@ -42,6 +42,6 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
       .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedOne)
 
   override def deleteByUser(appId: String, userId: String): IO[Unit] =
-    sql"delete from document_keys where app=$appId::uuid and user_id=$userId"
+    sql"delete from document_keys where app_id=$appId::uuid and user_id=$userId"
       .update.run.transact(xa).flatMap(DbUtil.ensureUpdatedAtLeastOne)
 }
