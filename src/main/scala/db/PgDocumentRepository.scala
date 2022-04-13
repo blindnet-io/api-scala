@@ -14,8 +14,8 @@ import doobie.postgres.implicits.*
 class PgDocumentRepository(xa: Transactor[IO]) extends DocumentRepository[IO] {
   override def findAllByIds(appId: String, ids: List[String]): IO[List[Document]] =
     NonEmptyList.fromList(ids) match
-      case Some(nel) => fr"select app, id from documents where app=$appId::uuid and id::text in $ids"
-        ++ Fragments.in(fr"id", nel) ++ sql"::uuid[]")
+      case Some(nel) => (fr"select app, id from documents where app=$appId::uuid and"
+        ++ DbUtil.Fragments.inUuid(fr"id", nel))
         .query[Document].to[List].transact(xa)
       case None => IO.pure(Nil)
 

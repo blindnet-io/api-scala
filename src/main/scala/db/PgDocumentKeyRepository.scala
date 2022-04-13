@@ -22,8 +22,8 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
 
   override def findAllByDocumentsAndUser(appId: String, docIds: List[String], userId: String): IO[List[DocumentKey]] =
     NonEmptyList.fromList(docIds) match
-      case Some(nel) => (fr"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId::uuid and user_id=$userId"
-        ++ Fragments.in(fr"document_id", nel) ++ sql"::uuid[]")
+      case Some(nel) => (fr"select app_id, document_id, user_id, enc_sym_key from document_keys where app_id=$appId::uuid and user_id=$userId and"
+        ++ DbUtil.Fragments.inUuid(fr"document_id", nel))
         .query[DocumentKey].to[List].transact(xa)
       case None => IO.pure(Nil)
 
