@@ -138,4 +138,85 @@ class AddUserDocKeysSpec extends UserAuthEndpointSpec("documents/keys/user/%s", 
       assertResult(Status.Forbidden)(res.status)
     }
   }
+
+  it("should fail if user does not exist") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val testUser2 = TestUser()
+    val testUsers = List.fill(10)(TestUser())
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testUser.insert(serverApp, testApp)
+      _ <- testUsers.traverse(_.insert(serverApp, testApp))
+      docRes <- run(CreateDocSpec().createCompleteRequest(testUsers, aesKey, testApp.createTempUserToken(testUsers.map(_.id))))
+      docBody <- docRes.as[Json]
+      res <- run(createCompleteRequest(testUser2, docBody.asString.get, aesKey, testApp.createUserToken(testUser)))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
+
+  it("should fail if document does not exist") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val testUser2 = TestUser()
+    val testUsers = List.fill(10)(TestUser())
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testUser.insert(serverApp, testApp)
+      _ <- testUser2.insert(serverApp, testApp)
+      _ <- testUsers.traverse(_.insert(serverApp, testApp))
+      res <- run(createCompleteRequest(testUser2, UUID.randomUUID().toString, aesKey, testApp.createUserToken(testUser)))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
+
+  it("should fail if dest user belongs to another app") {
+    val testApp = TestApp()
+    val testApp2 = TestApp()
+    val testUser = TestUser()
+    val testUser2 = TestUser()
+    val testUsers = List.fill(10)(TestUser())
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testApp2.insert(serverApp)
+      _ <- testUser.insert(serverApp, testApp)
+      _ <- testUser2.insert(serverApp, testApp2)
+      _ <- testUsers.traverse(_.insert(serverApp, testApp))
+      docRes <- run(CreateDocSpec().createCompleteRequest(testUsers, aesKey, testApp.createTempUserToken(testUsers.map(_.id))))
+      docBody <- docRes.as[Json]
+      res <- run(createCompleteRequest(testUser2, docBody.asString.get, aesKey, testApp.createUserToken(testUser)))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
+
+  it("should fail if auth user belongs to another app") {
+    val testApp = TestApp()
+    val testApp2 = TestApp()
+    val testUser = TestUser()
+    val testUser2 = TestUser()
+    val testUsers = List.fill(10)(TestUser())
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testApp2.insert(serverApp)
+      _ <- testUser.insert(serverApp, testApp2)
+      _ <- testUser2.insert(serverApp, testApp)
+      _ <- testUsers.traverse(_.insert(serverApp, testApp))
+      docRes <- run(CreateDocSpec().createCompleteRequest(testUsers, aesKey, testApp.createTempUserToken(testUsers.map(_.id))))
+      docBody <- docRes.as[Json]
+      res <- run(createCompleteRequest(testUser2, docBody.asString.get, aesKey, testApp2.createUserToken(testUser)))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
 }
