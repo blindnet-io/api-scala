@@ -106,4 +106,21 @@ class DeleteDocSpec extends ClientAuthEndpointSpec("documents/%s", Method.DELETE
       assertResult(Status.Forbidden)(res.status)
     }
   }
+
+  it("should fail if document does not exist") {
+    val testApp = TestApp()
+    val testUsers = List.fill(10)(TestUser())
+    val token = testApp.createTempUserToken(testUsers.map(_.id))
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testUsers.traverse(_.insert(serverApp, testApp))
+      docRes <- run(CreateDocSpec().createCompleteRequest(testUsers, aesKey, token))
+      docId <- docRes.as[Json].map(_.asString.get)
+      res <- run(createAuthedRequest(testApp.createClientToken(), UUID.randomUUID().toString))
+    } yield {
+      assertResult(Status.NotFound)(res.status)
+    }
+  }
 }
