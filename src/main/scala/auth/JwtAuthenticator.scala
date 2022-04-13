@@ -17,7 +17,7 @@ import java.security.{PublicKey, Signature}
 import java.util.Base64
 import scala.util.{Failure, Success, Try}
 
-class JwtAuthenticator(appRepo: AppRepository[IO]) {
+class JwtAuthenticator(appRepo: AppRepository[IO], userRepo: UserRepository[IO]) {
   private val authenticate: Kleisli[IO, Request[IO], Either[String, AuthJwt]] = Kleisli { (req: Request[IO]) =>
     AuthJwtUtils.getRawToken(req).flatMap(processToken)
   }
@@ -69,7 +69,12 @@ class JwtAuthenticator(appRepo: AppRepository[IO]) {
       case Success((header, claim, _)) =>
         if header.algorithm.contains(JwtUnknownAlgorithm("EdDSA")) && header.typ.isDefined then
           header.typ.get match {
-            case "jwt" => parseToken[UserJwt](token, claim)
+            case "jwt" => parseToken[UserJwt](token, claim).flatMap(e => e match
+              case Left(_) => IO.pure(e)
+              case Right(uJwt) => userRepo.findById(uJwt.appId, uJwt.userId).map(o => Right(
+                if o.isDefined then UserJwt(uJwt.appId, uJwt.userId, uJwt.groupId, true) else uJwt
+              ))
+            )
             case "tjwt" => parseToken[TempUserJwt](token, claim)
             case "cjwt" => parseToken[ClientJwt](token, claim)
             case _ => IO.pure(Left("Invalid JWT type"))

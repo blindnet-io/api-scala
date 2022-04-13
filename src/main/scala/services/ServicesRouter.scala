@@ -24,7 +24,7 @@ class ServicesRouter(appRepo: AppRepository[IO], userRepo: UserRepository[IO], d
   private val userService = UserService(userRepo)
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo)
 
-  private val authenticator = JwtAuthenticator(appRepo)
+  private val authenticator = JwtAuthenticator(appRepo, userRepo)
 
   private def authedRoutes = userService.authedRoutes <+> documentService.authedRoutes
   private def routes: HttpRoutes[IO] = authenticator.authMiddleware(authedRoutes)

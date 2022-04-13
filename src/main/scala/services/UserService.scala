@@ -25,7 +25,7 @@ class UserService(userRepo: UserRepository[IO]) {
     // FR-BE01 Create User
     case req @ POST -> Root / "users" as jwt =>
       for {
-        uJwt: UserJwt <- jwt.asUser
+        uJwt: UserJwt <- jwt.asUserNoCheck
         payload <- req.req.as[CreateUserPayload]
         rawJwt <- AuthJwtUtils.getRawToken(req.req)
         _ <- AuthJwtUtils.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)

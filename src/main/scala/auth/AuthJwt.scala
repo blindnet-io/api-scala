@@ -9,10 +9,17 @@ import io.circe.*
 sealed trait AuthJwt {
   val appId: String
 
-  def asAnyUser: IO[AnyUserJwt] = if isInstanceOf[AnyUserJwt] then IO.pure(asInstanceOf[AnyUserJwt]) else IO.raiseError(AuthException("Wrong JWT type"))
-  def asUser: IO[UserJwt] = if isInstanceOf[UserJwt] then IO.pure(asInstanceOf[UserJwt]) else IO.raiseError(AuthException("Wrong JWT type"))
-  def asTempUser: IO[TempUserJwt] = if isInstanceOf[TempUserJwt] then IO.pure(asInstanceOf[TempUserJwt]) else IO.raiseError(AuthException("Wrong JWT type"))
-  def asClient: IO[ClientJwt] = if isInstanceOf[ClientJwt] then IO.pure(asInstanceOf[ClientJwt]) else IO.raiseError(AuthException("Wrong JWT type"))
+  def asAnyUser: IO[AnyUserJwt] = as(classOf[AnyUserJwt])
+  def asUser: IO[UserJwt] = as(classOf[UserJwt])
+  def asUserNoCheck: IO[UserJwt] = asNoCheck(classOf[UserJwt])
+  def asTempUser: IO[TempUserJwt] = as(classOf[TempUserJwt])
+  def asClient: IO[ClientJwt] = as(classOf[ClientJwt])
+
+  private def as[T <: AuthJwt](cl: Class[T]): IO[T] = asNoCheck(cl).flatMap(t => t.check().as(t))
+  private def asNoCheck[T](cl: Class[T]): IO[T] =
+    if cl.isInstance(this) then IO.pure(asInstanceOf[T]) else IO.raiseError(AuthException("Wrong JWT type"))
+
+  protected def check(): IO[Unit] = IO.unit
 }
 
 sealed trait AnyUserJwt extends AuthJwt {
@@ -41,7 +48,13 @@ sealed trait AnyUserJwt extends AuthJwt {
   }
 }
 
-case class UserJwt(appId: String, userId: String, groupId: String) extends AnyUserJwt
+case class UserJwt(appId: String, userId: String, groupId: String, exists: Boolean = false) extends AnyUserJwt {
+  override protected def check(): IO[Unit] =
+    if exists then IO.unit else IO.raiseError(AuthException("User does not exist"))
+}
+object UserJwt {
+  def apply(appId: String, userId: String, groupId: String): UserJwt = new UserJwt(appId, userId, groupId)
+}
 implicit val dUserAuthJwt: Decoder[UserJwt] = Decoder.forProduct3("app", "uid", "gid")(UserJwt.apply)
 
 case class TempUserJwt(appId: String, groupId: Option[String], tokenId: String, userIds: List[String]) extends AnyUserJwt
