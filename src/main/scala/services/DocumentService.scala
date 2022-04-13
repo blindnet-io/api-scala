@@ -42,6 +42,8 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       for {
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[AddUserKeysPayload]
+        _ <- userRepo.findById(uJwt.appId, userId).orNotFound
+        _ <- payload.traverse(item => documentRepo.findById(uJwt.appId, item.documentID).orNotFound)
         _ <- payload.traverse(item => documentKeyRepo.findByDocumentAndUser(uJwt.appId, item.documentID, userId)
           .flatMap(o => if o.isDefined then IO.raiseError(BadRequestException()) else IO.unit))
         _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
