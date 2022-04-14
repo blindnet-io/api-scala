@@ -3,6 +3,8 @@ package errors
 
 import cats.effect.*
 
+import scala.util.{Failure, Success, Try}
+
 abstract class AppException(message: String = null, cause: Throwable = null) extends Exception(message, cause)
 
 class BadRequestException(message: String) extends AppException(message)
@@ -14,6 +16,12 @@ extension[T](o: IO[Option[T]]) {
       case Some(value) => IO.pure(value)
       case None => IO.raiseError(NotFoundException())
     )
+}
+
+extension[T](t: Try[T]) {
+  def orBadRequest: IO[T] = t match
+    case Failure(_) => IO.raiseError(BadRequestException())
+    case Success(value) => IO.pure(value)
 }
 
 extension[T](l: IO[List[T]]) {
