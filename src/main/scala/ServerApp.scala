@@ -17,13 +17,17 @@ class ServerApp(xa: Transactor[IO]) {
   val appRepo: PgAppRepository = PgAppRepository(xa)
   val userRepo: PgUserRepository = PgUserRepository(xa)
   val userKeysRepo: PgUserKeysRepository = PgUserKeysRepository(xa)
+  val userDeviceRepo: PgUserDeviceRepository = PgUserDeviceRepository(xa)
+  val oneTimeKeyRepo: PgOneTimeKeyRepository = PgOneTimeKeyRepository(xa)
   val documentRepo: PgDocumentRepository = PgDocumentRepository(xa)
   val documentKeyRepo: PgDocumentKeyRepository = PgDocumentKeyRepository(xa)
   val messageRepo: PgMessageRepository = PgMessageRepository(xa)
   
   def app: HttpApp[IO] =
     Router(
-      "/api/v1" -> ServicesRouter(appRepo, userRepo, userKeysRepo, documentRepo, documentKeyRepo, messageRepo).corsRoutes,
+      "/api/v1" -> ServicesRouter(
+        appRepo, userRepo, userKeysRepo, userDeviceRepo, oneTimeKeyRepo, documentRepo, documentKeyRepo, messageRepo
+      ).corsRoutes,
     ).orNotFound
   
   def server: Resource[IO, Server] =
