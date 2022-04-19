@@ -20,7 +20,7 @@ import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.AuthMiddleware
 
-class UserService(userRepo: UserRepository[IO]) {
+class UserService(userRepo: UserRepository[IO], keysRepo: UserKeysRepository[IO]) {
   def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
     // FR-BE01 Create User
     case req @ POST -> Root / "users" as jwt =>
@@ -29,36 +29,32 @@ class UserService(userRepo: UserRepository[IO]) {
         payload <- req.req.as[CreateUserPayload]
         rawJwt <- AuthJwtUtils.getRawToken(req.req)
         _ <- AuthJwtUtils.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)
-        existing <- userRepo.findById(uJwt.appId, uJwt.userId)
-        ret <- existing match {
-          case Some(_) => BadRequest()
-          case None => for {
-            _ <- AuthJwtUtils.verifyB64SignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
-            _ <- userRepo.insert(User(
-              uJwt.appId, uJwt.userId, uJwt.groupId,
-              payload.publicEncryptionKey, payload.publicSigningKey,
-              payload.signedPublicEncryptionKey,
-              payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
-              payload.keyDerivationSalt)
-            )
-            ret <- Ok(uJwt.userId)
-          } yield ret
-        }
+        _ <- AuthJwtUtils.verifyB64SignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
+        existingUser <- userRepo.findById(uJwt.appId, uJwt.userId)
+        _ <- if existingUser.isDefined then IO.unit else userRepo.insert(User(uJwt.appId, uJwt.userId, uJwt.groupId))
+        existingKey <- keysRepo.findById(uJwt.appId, uJwt.userId)
+        ret <- if existingKey.isDefined then BadRequest() else keysRepo.insert(UserKeys(
+          uJwt.appId, uJwt.userId,
+          payload.publicEncryptionKey, payload.publicSigningKey,
+          payload.signedPublicEncryptionKey,
+          payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey,
+          payload.keyDerivationSalt)
+        ).flatMap(_ => Ok(uJwt.userId))
       } yield ret
 
     // FR-BE02 Get Self Keys
     case req @ GET -> Root / "keys" / "me" as jwt =>
       for {
         uJwt: UserJwt <- jwt.asUser
-        ret <- userRepo.findById(uJwt.appId, uJwt.userId).flatMap {
-          case Some(u) => Ok(UserKeysResponse(
-            userID = u.id,
-            publicEncryptionKey = u.publicEncKey,
-            publicSigningKey = u.publicSignKey,
-            encryptedPrivateEncryptionKey = u.encPrivateEncKey,
-            encryptedPrivateSigningKey = u.encPrivateSignKey,
-            keyDerivationSalt = u.keyDerivationSalt,
-            signedPublicEncryptionKey = u.signedPublicEncKey,
+        ret <- keysRepo.findById(uJwt.appId, uJwt.userId).flatMap {
+          case Some(k) => Ok(UserKeysResponse(
+            userID = k.userId,
+            publicEncryptionKey = k.publicEncKey,
+            publicSigningKey = k.publicSignKey,
+            encryptedPrivateEncryptionKey = k.encPrivateEncKey,
+            encryptedPrivateSigningKey = k.encPrivateSignKey,
+            keyDerivationSalt = k.keyDerivationSalt,
+            signedPublicEncryptionKey = k.signedPublicEncKey,
           ))
           case None => NotFound()
         }
@@ -78,7 +74,7 @@ class UserService(userRepo: UserRepository[IO]) {
         ret <- req.req.as[UsersPublicKeysPayload].flatMap {
           case GIDUsersPublicKeysPayload(groupID) =>
             if auJwt.containsGroup(groupID)
-            then Ok(userRepo.findAllByGroup(auJwt.appId, groupID).map(users => users.map(UserPublicKeysResponse.apply)))
+            then Ok(keysRepo.findAllByGroup(auJwt.appId, groupID).map(users => users.map(UserPublicKeysResponse.apply)))
             else Forbidden()
           case UIDUsersPublicKeysPayload(userIDs) => for {
             _ <- auJwt.containsUserIds(userIDs, userRepo)
@@ -93,8 +89,8 @@ class UserService(userRepo: UserRepository[IO]) {
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[UpdateUserPrivateKeysPayload]
         _ <- payload.keyDerivationSalt match {
-          case Some(salt) => userRepo.updatePrivateKeysAndSalt(uJwt.appId, uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, salt)
-          case None => userRepo.updatePrivateKeys(uJwt.appId, uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey)
+          case Some(salt) => keysRepo.updatePrivateKeysAndSalt(uJwt.appId, uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, salt)
+          case None => keysRepo.updatePrivateKeys(uJwt.appId, uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey)
         }
         ret <- Ok()
       } yield ret
@@ -125,7 +121,7 @@ class UserService(userRepo: UserRepository[IO]) {
   }
 
   private def findUserPublicKeys(appId: String, id: String): IO[UserPublicKeysResponse] =
-    userRepo.findById(appId, id).flatMap {
+    keysRepo.findById(appId, id).flatMap {
       case Some(u) => IO.pure(UserPublicKeysResponse(u))
       case None => IO.raiseError(NotFoundException("User not found"))
     }
@@ -164,7 +160,7 @@ case class UserPublicKeysResponse(
   signedPublicEncryptionKey: String,
 )
 object UserPublicKeysResponse {
-  def apply(user: User): UserPublicKeysResponse = UserPublicKeysResponse(user.id, user.publicEncKey, user.publicSignKey, user.signedPublicEncKey)
+  def apply(keys: UserKeys): UserPublicKeysResponse = UserPublicKeysResponse(keys.userId, keys.publicEncKey, keys.publicSignKey, keys.signedPublicEncKey)
 }
 
 sealed trait UsersPublicKeysPayload

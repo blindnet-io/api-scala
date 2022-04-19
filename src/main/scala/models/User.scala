@@ -5,12 +5,6 @@ case class User(
   appId: String,
   id: String,
   groupId: String,
-  publicEncKey: String,
-  publicSignKey: String,
-  signedPublicEncKey: String,
-  encPrivateEncKey: String,
-  encPrivateSignKey: String,
-  keyDerivationSalt: String,
 )
 
 trait UserRepository[F[_]] {
@@ -19,8 +13,6 @@ trait UserRepository[F[_]] {
   def findAllByGroup(appId: String, groupId: String): F[List[User]]
   def findAllByIds(appId: String, ids: List[String]): F[List[User]]
   def insert(user: User): F[Unit]
-  def updatePrivateKeys(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String): F[Unit]
-  def updatePrivateKeysAndSalt(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): F[Unit]
   def delete(appId: String, id: String): F[Unit]
   def deleteAllByGroup(appId: String, groupId: String): F[Unit]
 }

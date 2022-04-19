@@ -23,10 +23,11 @@ import org.http4s.server.middleware.*
 class ServicesRouter(
     appRepo: AppRepository[IO],
     userRepo: UserRepository[IO],
+    userKeysRepo: UserKeysRepository[IO],
     documentRepo: DocumentRepository[IO],
     documentKeyRepo: DocumentKeyRepository[IO],
     messageRepo: MessageRepository[IO]) {
-  private val userService = UserService(userRepo)
+  private val userService = UserService(userRepo, userKeysRepo)
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo)
   private val messageService = MessageService(userRepo, messageRepo)
 

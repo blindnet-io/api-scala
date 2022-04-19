@@ -34,13 +34,15 @@ class UpdatePrivateKeysSpec extends UserAuthEndpointSpec("keys/me", Method.PUT) 
       res <- run(createAuthedRequest(testApp.createUserToken(newUser))
         .withEntity(payload(newUser)))
       dbUser <- serverApp.userRepo.findById(testApp.id, newUser.id)
+      dbUserKeys <- serverApp.userKeysRepo.findById(testApp.id, newUser.id)
     } yield {
       assertResult(Status.Ok)(res.status)
 
       assert(dbUser.isDefined)
-      assertResult(newUser.encKey.privateKeyBytes)(newUser.aes.decryptFromString(dbUser.get.encPrivateEncKey))
-      assertResult(newUser.sigKey.privateKeyBytes)(newUser.aes.decryptFromString(dbUser.get.encPrivateSignKey))
-      assertResult(newUser.saltString)(dbUser.get.keyDerivationSalt)
+      assert(dbUserKeys.isDefined)
+      assertResult(newUser.encKey.privateKeyBytes)(newUser.aes.decryptFromString(dbUserKeys.get.encPrivateEncKey))
+      assertResult(newUser.sigKey.privateKeyBytes)(newUser.aes.decryptFromString(dbUserKeys.get.encPrivateSignKey))
+      assertResult(newUser.saltString)(dbUserKeys.get.keyDerivationSalt)
     }
   }
 

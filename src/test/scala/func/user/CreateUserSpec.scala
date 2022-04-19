@@ -40,6 +40,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
       res <- run(createCompleteRequest(testApp, testUser, token))
       body <- res.as[Json]
       dbUser <- serverApp.userRepo.findById(testApp.id, testUser.id)
+      dbUserKeys <- serverApp.userKeysRepo.findById(testApp.id, testUser.id)
     } yield {
       assertResult(Status.Ok)(res.status)
 
@@ -47,12 +48,13 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
       assertResult(testUser.id)(body.asString.get)
 
       assert(dbUser.isDefined)
-      assertResult(testUser.encKey.publicKeyString)(dbUser.get.publicEncKey)
-      assertResult(testUser.sigKey.publicKeyString)(dbUser.get.publicSignKey)
-      assertResult(testUser.encKey.privateKeyBytes)(testUser.aes.decryptFromString(dbUser.get.encPrivateEncKey))
-      assertResult(testUser.sigKey.privateKeyBytes)(testUser.aes.decryptFromString(dbUser.get.encPrivateSignKey))
-      assertResult(testUser.saltString)(dbUser.get.keyDerivationSalt)
-      assertResult(testUser.sigKey.signToString(testUser.encKey.publicKeyBytes))(dbUser.get.signedPublicEncKey)
+      assert(dbUserKeys.isDefined)
+      assertResult(testUser.encKey.publicKeyString)(dbUserKeys.get.publicEncKey)
+      assertResult(testUser.sigKey.publicKeyString)(dbUserKeys.get.publicSignKey)
+      assertResult(testUser.encKey.privateKeyBytes)(testUser.aes.decryptFromString(dbUserKeys.get.encPrivateEncKey))
+      assertResult(testUser.sigKey.privateKeyBytes)(testUser.aes.decryptFromString(dbUserKeys.get.encPrivateSignKey))
+      assertResult(testUser.saltString)(dbUserKeys.get.keyDerivationSalt)
+      assertResult(testUser.sigKey.signToString(testUser.encKey.publicKeyBytes))(dbUserKeys.get.signedPublicEncKey)
     }
   }
 
