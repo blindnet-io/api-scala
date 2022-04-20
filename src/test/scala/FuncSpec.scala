@@ -8,6 +8,7 @@ import models.*
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.effect.{IO, Resource}
 import com.dimafeng.testcontainers.{Container, ForAllTestContainer, PostgreSQLContainer}
+import doobie.util.transactor.Transactor
 import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator
 import org.bouncycastle.crypto.params.{Ed25519KeyGenerationParameters, Ed25519PublicKeyParameters}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -34,7 +35,9 @@ abstract class FuncSpec extends AsyncFunSpec with AsyncIOSpec with ForAllTestCon
   override def afterStart(): Unit = {
     Security.addProvider(BouncyCastleProvider())
 
-    _serverApp = Some(ServerApp(DbConfig(container.jdbcUrl, container.username, container.password)))
+    _serverApp = Some(ServerApp(Transactor.fromDriverManager[IO](
+      "org.postgresql.Driver", container.jdbcUrl, container.username, container.password
+    )))
   }
 
   describe("PostgreSQL container") {
