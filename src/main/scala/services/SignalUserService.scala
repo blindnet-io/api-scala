@@ -79,6 +79,15 @@ class SignalUserService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepo
               .map(otKey => UserKeysResponseItem(device, otKey)))
         ret <- Ok(items)
       } yield ret
+
+    // Get User Devices
+    case req @ GET -> Root / "signal" / "devices" / userId as jwt =>
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        devices <- deviceRepo.findAllByUser(uJwt.appId, userId)
+        ret <- if devices.isEmpty then IO.raiseError(NotFoundException()) else
+          Ok(devices.map(UserDevicesResponseItem.apply))
+      } yield ret
   }
 
   private def insertOneTimeKeys(appId: String, userId: String, deviceId: String, list: List[OneTimeKeyPayload]): IO[Unit] =
@@ -132,4 +141,13 @@ object UserKeysResponseItem {
       device.pkSig,
       otKey.map(_.id), otKey.map(_.key)
     )
+}
+
+case class UserDevicesResponseItem(
+  userID: String,
+  deviceID: String,
+)
+object UserDevicesResponseItem {
+  def apply(device: UserDevice): UserDevicesResponseItem =
+    new UserDevicesResponseItem(device.userId, device.id)
 }
