@@ -5,7 +5,7 @@ import auth.*
 import errors.*
 import models.*
 
-import cats.data.{EitherT, Kleisli, OptionT}
+import cats.data.*
 import cats.effect.*
 import cats.implicits.*
 import io.circe.*
@@ -57,9 +57,27 @@ class SignalUserService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepo
           deviceRepo.updateSpkById(uJwt.appId, uJwt.userId, payload.deviceID,
             payload.publicSpkID.get, payload.publicSpk.get, payload.pkSig.get)
         _ <- if !hasOtk then IO.unit else
-          otKeyRepo.deleteByDevice(uJwt.appId, uJwt.userId, payload.deviceID)
+          otKeyRepo.deleteAllByDevice(uJwt.appId, uJwt.userId, payload.deviceID)
             .flatMap(_ => insertOneTimeKeys(uJwt.appId, uJwt.userId, payload.deviceID, payload.signalOneTimeKeys.get))
         ret <- Ok(true)
+      } yield ret
+
+    // FR-UM03 Get User Keys
+    case req @ GET -> Root / "signal" / "keys" / userId as jwt =>
+      val deviceIds = req.req.multiParams.getOrElse("deviceID", Nil)
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        devices <- NonEmptyList.fromFoldable(deviceIds) match
+          case Some(nel) => deviceRepo.findAllByUserAndIds(uJwt.appId, userId, nel)
+          case None => deviceRepo.findAllByUser(uJwt.appId, userId)
+        items <- if devices.isEmpty then IO.raiseError(NotFoundException()) else
+          devices.traverse(device =>
+            otKeyRepo.findByDevice(uJwt.appId, userId, device.id)
+              .flatTap(opt => opt match
+                case Some(otKey) => otKeyRepo.deleteById(otKey.appId, otKey.userId, otKey.deviceId, otKey.id)
+                case None => IO.unit)
+              .map(otKey => UserKeysResponseItem(device, otKey)))
+        ret <- Ok(items)
       } yield ret
   }
 
@@ -93,3 +111,25 @@ case class UpdateSignalUserPayload(
   pkSig: Option[String],
   signalOneTimeKeys: Option[List[OneTimeKeyPayload]],
 )
+
+case class UserKeysResponseItem(
+  userID: String,
+  deviceID: String,
+  publicIkID: String,
+  publicIk: String,
+  publicSpkID: String,
+  publicSpk: String,
+  pkSig: String,
+  publicOpkID: Option[String],
+  publicOpk: Option[String],
+)
+object UserKeysResponseItem {
+  def apply(device: UserDevice, otKey: Option[OneTimeKey] = None): UserKeysResponseItem =
+    new UserKeysResponseItem(
+      device.userId, device.id,
+      device.publicIkId, device.publicIk,
+      device.publicSpkId, device.publicSpk,
+      device.pkSig,
+      otKey.map(_.id), otKey.map(_.key)
+    )
+}
