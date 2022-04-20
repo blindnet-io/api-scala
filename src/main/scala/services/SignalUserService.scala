@@ -40,14 +40,33 @@ class SignalUserService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepo
             payload.publicSpkID, payload.publicSpk,
             payload.pkSig,
           ))
-          _ <- payload.signalOneTimeKeys.traverse(item => otKeyRepo.insert(OneTimeKey(
-            uJwt.appId, uJwt.userId, payload.deviceID,
-            item.publicOpkID, item.publicOpk
-          )))
+          _ <- insertOneTimeKeys(uJwt.appId, uJwt.userId, payload.deviceID, payload.signalOneTimeKeys)
           ret <- Ok(uJwt.userId)
         } yield ret
       } yield ret
+
+    // FR-UM02 Update User
+    case req @ PUT -> Root / "signal" / "keys" / "me" as jwt =>
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        payload <- req.req.as[UpdateSignalUserPayload]
+        hasSpk = payload.publicSpkID.isDefined && payload.publicSpk.isDefined && payload.pkSig.isEmpty
+        hasOtk = payload.signalOneTimeKeys.isDefined
+        _ <- if hasSpk || hasOtk then IO.unit else IO.raiseError(BadRequestException())
+        _ <- if !hasSpk then IO.unit else
+          deviceRepo.updateSpkById(uJwt.appId, uJwt.userId, payload.deviceID,
+            payload.publicSpkID.get, payload.publicSpk.get, payload.pkSig.get)
+        _ <- if !hasOtk then IO.unit else
+          otKeyRepo.deleteByDevice(uJwt.appId, uJwt.userId, payload.deviceID)
+            .flatMap(_ => insertOneTimeKeys(uJwt.appId, uJwt.userId, payload.deviceID, payload.signalOneTimeKeys.get))
+        ret <- Ok(true)
+      } yield ret
   }
+
+  private def insertOneTimeKeys(appId: String, userId: String, deviceId: String, list: List[OneTimeKeyPayload]): IO[Unit] =
+    list.traverse(item => otKeyRepo.insert(OneTimeKey(
+      appId, userId, deviceId, item.publicOpkID, item.publicOpk
+    ))).as(())
 }
 
 case class CreateSignalUserPayload(
@@ -65,4 +84,12 @@ case class CreateSignalUserPayload(
 case class OneTimeKeyPayload(
   publicOpkID: String,
   publicOpk: String,
+)
+
+case class UpdateSignalUserPayload(
+  deviceID: String,
+  publicSpkID: Option[String],
+  publicSpk: Option[String],
+  pkSig: Option[String],
+  signalOneTimeKeys: Option[List[OneTimeKeyPayload]],
 )
