@@ -73,10 +73,11 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       for {
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[GetDocsAndKeysPayload]
-        docs <- documentRepo.findAllByIds(uJwt.appId, payload.dataIDs)
-        _ <- if docs.size == payload.dataIDs.size then IO.unit else IO.raiseError(NotFoundException())
-        keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, payload.dataIDs, uJwt.userId)
-        _ <- if keys.size == payload.dataIDs.size then IO.unit else IO.raiseError(AuthException())
+        docIds = payload.dataIDs.distinct
+        docs <- documentRepo.findAllByIds(uJwt.appId, docIds)
+        _ <- if docs.size == docIds.size then IO.unit else IO.raiseError(NotFoundException())
+        keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, docIds, uJwt.userId)
+        _ <- if keys.size == docIds.size then IO.unit else IO.raiseError(AuthException())
         ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
 
