@@ -29,7 +29,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       for {
         auJwt: AnyUserJwt <- jwt.asAnyUser
         payload <- req.req.as[CreateDocumentPayload]
-        _ <- if payload.nonEmpty then IO.unit else IO.raiseError(BadRequestException())
+        _ <- if payload.nonEmpty then IO.unit else IO.raiseError(BadRequestException("Empty payload"))
         _ <- auJwt.containsUserIds(payload.map(item => item.userID), userRepo)
         doc = Document(auJwt.appId, UUID.randomUUID().toString)
         _ <- documentRepo.insert(doc)
@@ -45,7 +45,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         _ <- userRepo.findById(uJwt.appId, userId).orNotFound
         _ <- payload.traverse(item => documentRepo.findById(uJwt.appId, item.documentID).orNotFound)
         _ <- payload.traverse(item => documentKeyRepo.findByDocumentAndUser(uJwt.appId, item.documentID, userId)
-          .flatMap(o => if o.isDefined then IO.raiseError(BadRequestException()) else IO.unit))
+          .flatMap(o => if o.isDefined then IO.raiseError(BadRequestException("key already exists")) else IO.unit))
         _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
         ret <- Ok(true)
       } yield ret
