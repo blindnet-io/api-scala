@@ -7,9 +7,14 @@ case class Message(
   id: Long,
   appId: String,
   senderId: String,
+  senderDeviceId: String,
   recipientId: String,
+  recipientDeviceId: String,
   data: String,
+  dhKey: String,
   timeSent: Instant,
+  timeDelivered: Option[Instant] = None,
+  timeRead: Option[Instant] = None,
 )
 
 trait MessageRepository[F[_]] {
