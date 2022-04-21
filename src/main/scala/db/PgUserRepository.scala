@@ -26,7 +26,7 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
   override def insert(user: User): IO[Unit] =
     sql"""insert into users (app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt)
           values (${user.appId}::uuid, ${user.id}, ${user.groupId}, ${user.publicEncKey}, ${user.publicSignKey}, ${user.signedPublicEncKey}, ${user.encPrivateEncKey}, ${user.encPrivateSignKey}, ${user.keyDerivationSalt})"""
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).void
 
   override def updatePrivateKeys(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String): IO[Unit] =
     sql"""update users set enc_priv_enc_key=${encPrivateEncKey}, enc_priv_sign_key=${encPrivateSignKey}

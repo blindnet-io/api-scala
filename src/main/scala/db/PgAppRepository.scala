@@ -18,5 +18,5 @@ class PgAppRepository(xa: Transactor[IO]) extends AppRepository[IO] {
   override def insert(app: App): IO[Unit] =
     sql"""insert into apps (id, public_key, name)
           values (${app.id}::uuid, ${app.publicKey}, ${app.name})"""
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).void
 }

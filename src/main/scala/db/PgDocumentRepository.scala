@@ -26,7 +26,7 @@ class PgDocumentRepository(xa: Transactor[IO]) extends DocumentRepository[IO] {
   override def insert(doc: Document): IO[Unit] =
     sql"""insert into documents (id, app)
           values (${doc.id}::uuid, ${doc.appId}::uuid)"""
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).void
 
   override def delete(appId: String, id: String): IO[Unit] =
     sql"delete from documents where app=$appId::uuid and id=$id::uuid"
