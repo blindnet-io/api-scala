@@ -61,10 +61,7 @@ object AuthJwtUtils {
     kf.generatePrivate(PKCS8EncodedKeySpec(priv.getEncoded))
   }
 
-  def decodeBase64(data: String): IO[Array[Byte]] = Try {
+  def decodeBase64(data: String): IO[Array[Byte]] = IO.fromTry(Try {
     Base64.getDecoder.decode(data)
-  } match {
-    case Failure(ex) => IO.raiseError(ex)
-    case Success(value) => IO.pure(value)
-  }
+  })
 }
