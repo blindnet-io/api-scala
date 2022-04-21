@@ -10,6 +10,9 @@ val http4sVersion = "0.23.11"
 lazy val root = (project in file("."))
   .settings(
     name := "blindnet-backend-scala",
+    organization := "io.blindnet",
+    organizationName := "Blindnet",
+    organizationHomepage := Some(url("https://blindnet.io")),
     idePackagePrefix := Some("io.blindnet.backend"),
     libraryDependencies ++= Seq(
       "com.dimafeng"           %% "testcontainers-scala-scalatest"  % "0.40.4" % Test,
