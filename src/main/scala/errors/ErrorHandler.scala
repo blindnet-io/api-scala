@@ -14,15 +14,15 @@ object ErrorHandler {
   val handler: Request[IO] => PartialFunction[Throwable, IO[Response[IO]]] = req => {
     case e: BadRequestException => for {
       _ <- logger.debug(e)("Bad request exception")
-    } yield Response(Status.BadRequest)
+    } yield Response(Status.BadRequest).condEntity(Env.get.sendErrorMessages, e.getMessage)
 
     case e: MessageFailure => for {
       _ <- logger.debug(e)("Message handling exception")
-    } yield Response(Status.BadRequest)
+    } yield Response(Status.BadRequest).condEntity(Env.get.sendErrorMessages, e.getMessage)
 
     case e: AuthException => for {
       _ <- logger.debug(e)("Authentication exception")
-    } yield Response(Status.Forbidden).withEntity(e.getMessage)
+    } yield Response(Status.Forbidden).condEntity(Env.get.sendErrorMessages, e.getMessage)
 
     case e: NotFoundException => for {
       _ <- logger.debug(e)("NotFound exception")
@@ -30,6 +30,11 @@ object ErrorHandler {
 
     case e: Exception => for {
       _ <- logger.error(e)("Unhandled exception")
-    } yield Response(Status.InternalServerError)
+    } yield Response(Status.InternalServerError).condEntity(Env.get.sendInternalErrorMessages, e.getMessage)
   }
+}
+
+extension(m: Response[IO]) {
+  def condEntity[T](cond: Boolean, entity: T)(implicit enc: EntityEncoder[IO, T]): Response[IO] =
+    if cond then m.withEntity(entity) else m
 }
