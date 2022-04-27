@@ -6,8 +6,12 @@ import cats.effect.*
 import doobie.*
 import doobie.hikari.*
 import org.http4s.server.Server
+import org.typelevel.log4cats.*
+import org.typelevel.log4cats.slf4j.*
 
 object Main extends IOApp {
+  val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+
   override def run(args: List[String]): IO[ExitCode] =
     val dbConfig = DbConfig(sys.env("BN_DB_URI"), sys.env("BN_DB_USER"), sys.env("BN_DB_PASSWORD"))
 
@@ -23,7 +27,9 @@ object Main extends IOApp {
       server <- ServerApp(xa).server
     } yield server
 
-    Migrator.migrateDatabase(dbConfig)
-      .flatMap(_ => server.use(_ => IO.never))
-      .as(ExitCode.Success)
+    for {
+      _ <- logger.info("Env: " + Env.get.name)
+      _ <- if Env.get.migrate then Migrator.migrateDatabase(dbConfig) else IO.unit
+      _ <- server.use(_ => IO.never)
+    } yield ExitCode.Success
 }
