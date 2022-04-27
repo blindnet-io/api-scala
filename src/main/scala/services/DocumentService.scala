@@ -7,6 +7,7 @@ import models.*
 
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.effect.*
+import cats.effect.std.UUIDGen
 import cats.implicits.*
 import io.circe.*
 import io.circe.generic.auto.*
@@ -20,9 +21,9 @@ import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.AuthMiddleware
 
-import java.util.UUID
-
 class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
+  implicit val uuidGen: UUIDGen[IO] = UUIDGen.fromSync
+
   def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
     // FR-BE06 Create Document
     case req @ POST -> Root / "documents" as jwt =>
@@ -31,7 +32,8 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         payload <- req.req.as[CreateDocumentPayload]
         _ <- if payload.nonEmpty then IO.unit else IO.raiseError(BadRequestException("Empty payload"))
         _ <- auJwt.containsUserIds(payload.map(item => item.userID), userRepo)
-        doc = Document(auJwt.appId, UUID.randomUUID().toString)
+        docId <- UUIDGen.randomString
+        doc = Document(auJwt.appId, docId)
         _ <- documentRepo.insert(doc)
         _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
         res <- Ok(doc.id)
