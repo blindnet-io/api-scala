@@ -3,6 +3,7 @@ package db
 
 import models.{User, UserRepository}
 
+import cats.data.NonEmptyList
 import cats.effect.*
 import cats.implicits.*
 import doobie.*
@@ -15,13 +16,20 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
     sql"select count(*) from users where app=$appId::uuid and id in $usersId and group_id != $groupId"
       .query[Long].unique.transact(xa)
 
+  override def findById(appId: String, id: String): IO[Option[User]] =
+    sql"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where app=$appId::uuid and id=$id"
+      .query[User].option.transact(xa)
+
   override def findAllByGroup(appId: String, groupId: String): IO[List[User]] =
     sql"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where app=$appId::uuid and group_id=$groupId"
       .query[User].to[List].transact(xa)
 
-  override def findById(appId: String, id: String): IO[Option[User]] =
-    sql"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where app=$appId::uuid and id=$id"
-      .query[User].option.transact(xa)
+  override def findAllByIds(appId: String, ids: List[String]): IO[List[User]] =
+    NonEmptyList.fromList(ids) match
+      case Some(nel) => (fr"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where app=$appId::uuid and"
+        ++ Fragments.in(fr"id", nel))
+        .query[User].to[List].transact(xa)
+      case None => IO.pure(Nil)
 
   override def insert(user: User): IO[Unit] =
     sql"""insert into users (app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt)

@@ -15,8 +15,9 @@ case class User(
 
 trait UserRepository[F[_]] {
   def countByIdsOutsideGroup(appId: String, groupId: String, usersId: List[String]): F[Long]
-  def findAllByGroup(appId: String, groupId: String): F[List[User]]
   def findById(appId: String, id: String): F[Option[User]]
+  def findAllByGroup(appId: String, groupId: String): F[List[User]]
+  def findAllByIds(appId: String, ids: List[String]): F[List[User]]
   def insert(user: User): F[Unit]
   def updatePrivateKeys(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String): F[Unit]
   def updatePrivateKeysAndSalt(appId: String, id: String, encPrivateEncKey: String, encPrivateSignKey: String, keyDerivationSalt: String): F[Unit]
