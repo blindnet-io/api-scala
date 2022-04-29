@@ -22,7 +22,7 @@ import org.http4s.implicits.*
 import org.http4s.server.AuthMiddleware
 
 class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
-  implicit val uuidGen: UUIDGen[IO] = UUIDGen[IO]
+  implicit val uuidGen: UUIDGen[IO] = UUIDGen.fromSync
 
   def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
     // FR-BE06 Create Document
