@@ -15,3 +15,11 @@ extension[T](o: IO[Option[T]]) {
       case None => IO.raiseError(NotFoundException())
     )
 }
+
+extension[T](l: IO[List[T]]) {
+  def ensureSize(n: Int, e: => Exception = NotFoundException()): IO[List[T]] =
+    l.flatMap(list =>
+      if list.size == n then IO.pure(list)
+      else IO.raiseError(e)
+    )
+}

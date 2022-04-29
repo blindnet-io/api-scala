@@ -45,9 +45,9 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[AddUserKeysPayload]
         _ <- userRepo.findById(uJwt.appId, userId).orNotFound
-        _ <- payload.traverse(item => documentRepo.findById(uJwt.appId, item.documentID).orNotFound)
-        _ <- payload.traverse(item => documentKeyRepo.findByDocumentAndUser(uJwt.appId, item.documentID, userId)
-          .flatMap(o => if o.isDefined then IO.raiseError(BadRequestException("key already exists")) else IO.unit))
+        _ <- documentRepo.findAllByIds(uJwt.appId, payload.map(_.documentID)).ensureSize(payload.size)
+        _ <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, payload.map(_.documentID), userId)
+          .ensureSize(0, BadRequestException("key already exists"))
         _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
         ret <- Ok(true)
       } yield ret
@@ -76,10 +76,8 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         uJwt: UserJwt <- jwt.asUser
         payload <- req.req.as[GetDocsAndKeysPayload]
         docIds = payload.dataIDs.distinct
-        docs <- documentRepo.findAllByIds(uJwt.appId, docIds)
-        _ <- if docs.size == docIds.size then IO.unit else IO.raiseError(NotFoundException())
-        keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, docIds, uJwt.userId)
-        _ <- if keys.size == docIds.size then IO.unit else IO.raiseError(AuthException())
+        docs <- documentRepo.findAllByIds(uJwt.appId, docIds).ensureSize(docIds.size)
+        keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, docIds, uJwt.userId).ensureSize(docIds.size, AuthException())
         ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
 
@@ -116,7 +114,7 @@ case class CreateDocumentItem(
   encryptedSymmetricKey: String
 )
 
-type AddUserKeysPayload = Seq[AddUserKeysItem]
+type AddUserKeysPayload = List[AddUserKeysItem]
 case class AddUserKeysItem(
   documentID: String,
   encryptedSymmetricKey: String
