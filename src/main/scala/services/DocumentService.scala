@@ -35,7 +35,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         docId <- UUIDGen.randomString
         doc = Document(auJwt.appId, docId)
         _ <- documentRepo.insert(doc)
-        _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
+        _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
         res <- Ok(doc.id)
       } yield res
 
@@ -48,7 +48,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         _ <- documentRepo.findAllByIds(uJwt.appId, payload.map(_.documentID)).ensureSize(payload.size)
         _ <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, payload.map(_.documentID), userId)
           .ensureSize(0, BadRequestException("key already exists"))
-        _ <- payload.traverse(item => documentKeyRepo.insert(DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
+        _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
         ret <- Ok(true)
       } yield ret
 
