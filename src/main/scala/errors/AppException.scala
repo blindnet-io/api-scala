@@ -19,8 +19,8 @@ extension[T](o: IO[Option[T]]) {
 }
 
 extension[T](t: Try[T]) {
-  def orBadRequest: IO[T] = t match
-    case Failure(_) => IO.raiseError(BadRequestException())
+  def orBadRequest(message: String): IO[T] = t match
+    case Failure(_) => IO.raiseError(BadRequestException(message))
     case Success(value) => IO.pure(value)
 }
 

@@ -52,7 +52,7 @@ class SignalUserService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepo
         payload <- req.req.as[UpdateSignalUserPayload]
         hasSpk = payload.publicSpkID.isDefined && payload.publicSpk.isDefined && payload.pkSig.isEmpty
         hasOtk = payload.signalOneTimeKeys.isDefined
-        _ <- if hasSpk || hasOtk then IO.unit else IO.raiseError(BadRequestException())
+        _ <- if hasSpk || hasOtk then IO.unit else IO.raiseError(BadRequestException("Spk or at least one Otk required"))
         _ <- if !hasSpk then IO.unit else
           deviceRepo.updateSpkById(uJwt.appId, uJwt.userId, payload.deviceID,
             payload.publicSpkID.get, payload.publicSpk.get, payload.pkSig.get)

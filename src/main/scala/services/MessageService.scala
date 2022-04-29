@@ -35,7 +35,7 @@ class MessageService(userRepo: UserRepository[IO], deviceRepo: UserDeviceReposit
         recipient <- deviceRepo.findById(uJwt.appId, payload.recipientID, payload.recipientDeviceID).orNotFound
         sender <- deviceRepo.findById(uJwt.appId, uJwt.userId, payload.senderDeviceID).orNotFound
 
-        timeSent <- Try(Instant.parse(payload.timestamp)).orBadRequest
+        timeSent <- Try(Instant.parse(payload.timestamp)).orBadRequest("Bad timestamp")
         msg = models.Message(
           Random().nextLong(), uJwt.appId,
           sender.userId, sender.id,
