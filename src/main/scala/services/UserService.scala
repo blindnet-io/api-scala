@@ -78,7 +78,7 @@ class UserService(userRepo: UserRepository[IO], keysRepo: UserKeysRepository[IO]
             else Forbidden()
           case UIDUsersPublicKeysPayload(userIDs) => for {
             _ <- auJwt.containsUserIds(userIDs, userRepo)
-            ret <- Ok(userIDs.traverse(findUserPublicKeys(auJwt.appId, _)))
+            ret <- Ok(findUsersPublicKeys(auJwt.appId, userIDs))
           } yield ret
         }
       } yield ret
@@ -125,6 +125,11 @@ class UserService(userRepo: UserRepository[IO], keysRepo: UserKeysRepository[IO]
       case Some(u) => IO.pure(UserPublicKeysResponse(u))
       case None => IO.raiseError(NotFoundException("User not found"))
     }
+
+  private def findUsersPublicKeys(appId: String, ids: List[String]): IO[List[UserPublicKeysResponse]] =
+    keysRepo.findAllByIds(appId, ids)
+      .ensureSize(ids.size, NotFoundException("User not found"))
+      .map(_.map(UserPublicKeysResponse.apply))
 }
 
 case class CreateUserPayload(
