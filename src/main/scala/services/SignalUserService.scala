@@ -91,9 +91,9 @@ class SignalUserService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepo
   }
 
   private def insertOneTimeKeys(appId: String, userId: String, deviceId: String, list: List[OneTimeKeyPayload]): IO[Unit] =
-    list.traverse(item => otKeyRepo.insert(OneTimeKey(
+    otKeyRepo.insertMany(list.map(item => OneTimeKey(
       appId, userId, deviceId, item.publicOpkID, item.publicOpk
-    ))).as(())
+    )))
 }
 
 case class CreateSignalUserPayload(

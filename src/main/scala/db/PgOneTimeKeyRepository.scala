@@ -20,6 +20,10 @@ class PgOneTimeKeyRepository(xa: Transactor[IO]) extends OneTimeKeyRepository[IO
           values (${key.appId}::uuid, ${key.userId}, ${key.deviceId}, ${key.id}, ${key.key})"""
       .update.run.transact(xa).map(_ => ())
 
+  override def insertMany(keys: List[OneTimeKey]): IO[Unit] =
+    Update[OneTimeKey]("insert into one_time_keys (app_id, user_id, device_id, id, key) values (?::uuid, ?, ?, ?, ?)")
+      .updateMany(keys).transact(xa).void
+
   override def deleteById(appId: String, userId: String, deviceId: String, id: String): IO[Unit] =
     sql"delete from one_time_keys where app_id=$appId::uuid and user_id=$userId and device_id=$deviceId and id=$id"
       .update.run.transact(xa).map(_ => ())
