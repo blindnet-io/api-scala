@@ -46,6 +46,14 @@ class MessageService(userRepo: UserRepository[IO], deviceRepo: UserDeviceReposit
         _ <- messageRepo.insert(msg)
         res <- Ok(msg.id.toString)
       } yield res
+
+    // FR-M03 Get Message IDs
+    case req @ GET -> Root / "messages" as jwt =>
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        deviceId <- req.req.params.get("deviceID").orBadRequest("Missing deviceID")
+        res <- Ok(messageRepo.findAllIdsByRecipient(uJwt.appId, uJwt.userId, deviceId))
+      } yield res
   }
 }
 

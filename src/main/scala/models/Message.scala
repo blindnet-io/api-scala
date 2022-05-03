@@ -19,5 +19,6 @@ case class Message(
 
 trait MessageRepository[F[_]] {
   def findById(appId: String, id: Long): F[Option[Message]]
+  def findAllIdsByRecipient(appId: String, recipientId: String, deviceId: String): F[List[Long]]
   def insert(message: Message): F[Unit]
 }

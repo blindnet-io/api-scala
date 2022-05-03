@@ -16,6 +16,10 @@ class PgMessageRepository(xa: Transactor[IO]) extends MessageRepository[IO] {
     sql"""select id, app_id, sender_id, sender_device_id, recipient_id, recipient_device_id, data, dh_key, time_sent, time_delivered, time_read from messages
           where app_id=$appId::uuid and id=$id"""
       .query[Message].option.transact(xa)
+
+  override def findAllIdsByRecipient(appId: String, recipientId: String, deviceId: String): IO[List[Long]] =
+    sql"select id from messages where app_id=$appId::uuid and recipient_id=$recipientId and recipient_device_id=$deviceId"
+      .query[Long].to[List].transact(xa)
   
   override def insert(message: Message): IO[Unit] =
     sql"""insert into messages (id, app_id, sender_id, sender_device_id, recipient_id, recipient_device_id, data, dh_key, time_sent, time_delivered, time_read)

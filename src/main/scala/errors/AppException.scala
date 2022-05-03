@@ -10,12 +10,20 @@ abstract class AppException(message: String = null, cause: Throwable = null) ext
 class BadRequestException(message: String) extends AppException(message)
 class NotFoundException(message: String = null) extends AppException(message)
 
+extension[T](o: Option[T]) {
+  def orRaise(t: => Throwable): IO[T] = o match
+    case Some(value) => IO.pure(value)
+    case None => IO.raiseError(t)
+  
+  def orBadRequest(message: => String): IO[T] = orRaise(BadRequestException(message))
+  def orNotFound: IO[T] = orRaise(NotFoundException())
+}
+
 extension[T](o: IO[Option[T]]) {
-  def orNotFound: IO[T] =
-    o.flatMap(opt => opt match
-      case Some(value) => IO.pure(value)
-      case None => IO.raiseError(NotFoundException())
-    )
+  def orRaise(t: => Throwable): IO[T] = o.flatMap(_.orRaise(t))
+  
+  def orBadRequest(message: => String): IO[T] = o.flatMap(_.orBadRequest(message))
+  def orNotFound: IO[T] = o.flatMap(_.orNotFound)
 }
 
 extension[T](t: Try[T]) {
