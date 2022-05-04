@@ -20,7 +20,7 @@ object EdUtil {
   }
 }
 
-case class EdKeyPair(publicKey: Ed25519PublicKeyParameters, privateKey: Ed25519PrivateKeyParameters) {
+case class EdKeyPair(publicKey: Ed25519PublicKeyParameters, privateKey: Ed25519PrivateKeyParameters) extends ToUnique[EdKeyPair] {
   val publicKeyBytes: Array[Byte] = publicKey.getEncoded
   val publicKeyString: String = Base64.getEncoder.encodeToString(publicKeyBytes)
   val privateKeyBytes: Array[Byte] = privateKey.getEncoded
@@ -35,4 +35,14 @@ case class EdKeyPair(publicKey: Ed25519PublicKeyParameters, privateKey: Ed25519P
 
   def signToString(data: Array[Byte]): String =
     Base64.getEncoder.encodeToString(sign(data))
+  
+  def verify(data: Array[Byte], signature: Array[Byte]): Boolean = {
+    val signer = Ed25519Signer()
+    signer.init(false, publicKey)
+    signer.update(data, 0, data.length)
+    signer.verifySignature(signature)
+  }
+  
+  def verifyFromString(data: Array[Byte], signature: String): Boolean =
+    verify(data, Base64.getDecoder.decode(signature))
 }

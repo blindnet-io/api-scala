@@ -24,4 +24,6 @@ class TestUser(
     serverApp.app.run(CreateUserSpec().createCompleteRequest(testApp, this, testApp.createUserToken(id, group))).void
 
   def changePasswordAndSalt(): TestUser = TestUser(id, group, encKey, sigKey)
+  
+  def device(): TestDevice = TestDevice(this)
 }
