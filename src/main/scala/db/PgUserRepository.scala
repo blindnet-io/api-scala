@@ -34,7 +34,7 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
   override def insert(user: User): IO[Unit] =
     sql"""insert into users (app, id, group_id)
           values (${user.appId}::uuid, ${user.id}, ${user.groupId})"""
-      .update.run.transact(xa).map(_ => ())
+      .update.run.transact(xa).void)
 
   override def delete(appId: String, id: String): IO[Unit] =
     sql"delete from users where app=$appId::uuid and id=$id"

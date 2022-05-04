@@ -21,7 +21,7 @@ class TestUser(
   val aes: AesKey = AesUtil.createKey(password, salt)
 
   def insert(serverApp: ServerApp, testApp: TestApp): IO[Unit] =
-    serverApp.app.run(CreateUserSpec().createCompleteRequest(testApp, this, testApp.createUserToken(id, group))).as(IO.unit)
+    serverApp.app.run(CreateUserSpec().createCompleteRequest(testApp, this, testApp.createUserToken(id, group))).void
 
   def changePasswordAndSalt(): TestUser = TestUser(id, group, encKey, sigKey)
 }
