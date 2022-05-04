@@ -41,6 +41,7 @@ class MessageService(userRepo: UserRepository[IO], deviceRepo: UserDeviceReposit
           sender.userId, sender.id,
           recipient.userId, recipient.id,
           payload.message, payload.dhKey,
+          payload.senderKeys.publicIk, payload.senderKeys.publicEk,
           timeSent
         )
         _ <- messageRepo.insert(msg)
@@ -54,6 +55,16 @@ class MessageService(userRepo: UserRepository[IO], deviceRepo: UserDeviceReposit
         deviceId <- req.req.params.get("deviceID").orBadRequest("Missing deviceID")
         res <- Ok(messageRepo.findAllIdsByRecipient(uJwt.appId, uJwt.userId, deviceId))
       } yield res
+
+    // FR-M04 Get Message Content
+    case req @ GET -> Root / "messages" / "content" as jwt =>
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        deviceId <- req.req.params.get("deviceID").orBadRequest("Missing deviceID")
+        messageIds <- req.req.multiParams.get("messageIDs").orBadRequest("Missing messageIDs")
+        messages <- messageRepo.findAllByRecipientAndIds(uJwt.appId, uJwt.userId, deviceId, messageIds.toList)
+        res <- Ok(messages.map(MessageResponse.apply))
+      } yield res
   }
 }
 
@@ -63,7 +74,7 @@ case class SendMessagePayload(
   senderDeviceID: String,
   message: String,
   dhKey: String,
-  senderKeys: List[SenderKeys],
+  senderKeys: SenderKeys,
   timestamp: String,
 )
 
@@ -71,3 +82,39 @@ case class SenderKeys(
   publicIk: String,
   publicEk: String,
 )
+
+case class MessageResponse(
+  id: String,
+  senderID: String,
+  recipientID: String,
+  senderDeviceID: String,
+  recipientDeviceID: String,
+  messageContent: String,
+  dhKey: String,
+  timeSent: String,
+  timeDelivered: Option[String],
+  timeRead: Option[String],
+  messageSenderKeys: MessageSenderKeys,
+)
+object MessageResponse {
+  def apply(message: models.Message): MessageResponse = new MessageResponse(
+    message.id.toString,
+    message.senderId, message.recipientId,
+    message.senderDeviceId, message.recipientDeviceId,
+    message.data, message.dhKey,
+    message.timeSent.toString, message.timeDelivered.map(_.toString), message.timeRead.map(_.toString),
+    MessageSenderKeys(message)
+  )
+}
+
+case class MessageSenderKeys(
+  publicIk: String,
+  publicEk: String,
+  messageID: String,
+)
+object MessageSenderKeys {
+  def apply(message: models.Message): MessageSenderKeys = new MessageSenderKeys(
+    message.publicIk, message.publicEk,
+    message.id.toString
+  )
+}
