@@ -32,7 +32,7 @@ class PgUserKeysRepository(xa: Transactor[IO]) extends UserKeysRepository[IO] {
   override def insert(keys: UserKeys): IO[Unit] =
     sql"""insert into user_keys (app_id, user_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt)
           values (${keys.appId}::uuid, ${keys.userId}, ${keys.publicEncKey}, ${keys.publicSignKey}, ${keys.signedPublicEncKey}, ${keys.encPrivateEncKey}, ${keys.encPrivateSignKey}, ${keys.keyDerivationSalt})"""
-      .update.run.transact(xa).void)
+      .update.run.transact(xa).void
 
   override def updatePrivateKeys(appId: String, userId: String, encPrivateEncKey: String, encPrivateSignKey: String): IO[Unit] =
     sql"""update user_keys set enc_priv_enc_key=$encPrivateEncKey, enc_priv_sign_key=$encPrivateSignKey

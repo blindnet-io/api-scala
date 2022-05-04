@@ -33,7 +33,7 @@ class PgMessageRepository(xa: Transactor[IO]) extends MessageRepository[IO] {
     sql"""insert into messages (id, app_id, sender_id, sender_device_id, recipient_id, recipient_device_id, data, dh_key, public_ik, public_ek, time_sent, time_delivered, time_read)
           values (${message.id}, ${message.appId}::uuid, ${message.senderId}, ${message.senderDeviceId}, ${message.recipientId}, ${message.recipientDeviceId},
                   ${message.data}, ${message.dhKey}, ${message.publicIk}, ${message.publicEk}, ${message.timeSent}, ${message.timeDelivered}, ${message.timeRead})"""
-      .update.run.transact(xa).void)
+      .update.run.transact(xa).void
 
   override def deleteAllByUser(appId: String, userId: String): IO[Unit] =
     sql"delete from messages where app_id=$appId::uuid and (sender_id=$userId or recipient_id=$userId)"
