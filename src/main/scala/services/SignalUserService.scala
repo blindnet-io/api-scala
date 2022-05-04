@@ -28,14 +28,13 @@ class SignalUserService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepo
         uJwt: UserJwt <- jwt.asUserNoCheck
         payload <- req.req.as[CreateSignalUserPayload]
         rawJwt <- AuthJwtUtils.getRawToken(req.req)
-        _ <- AuthJwtUtils.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.userSigningPublicKey)
+        _ <- AuthJwtUtils.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicIk)
         existingUser <- userRepo.findById(uJwt.appId, uJwt.userId)
         _ <- if existingUser.isDefined then IO.unit else userRepo.insert(User(uJwt.appId, uJwt.userId, uJwt.groupId))
         existingDevice <- deviceRepo.findById(uJwt.appId, uJwt.userId, payload.deviceID)
         ret <- if existingDevice.isDefined then BadRequest() else for {
           _ <- deviceRepo.insert(UserDevice(
             uJwt.appId, uJwt.userId, payload.deviceID,
-            payload.userSigningPublicKey,
             payload.publicIkID, payload.publicIk,
             payload.publicSpkID, payload.publicSpk,
             payload.pkSig,
@@ -98,7 +97,6 @@ class SignalUserService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepo
 
 case class CreateSignalUserPayload(
   deviceID: String,
-  userSigningPublicKey: String,
   publicIkID: String,
   publicIk: String,
   publicSpkID: String,

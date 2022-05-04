@@ -7,7 +7,6 @@ case class UserDevice(
   appId: String,
   userId: String,
   id: String,
-  signingPublicKey: String,
   publicIkId: String,
   publicIk: String,
   publicSpkId: String,
