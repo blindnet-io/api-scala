@@ -24,4 +24,5 @@ trait MessageRepository[F[_]] {
   def findAllByRecipientAndIds(appId: String, recipientId: String, deviceId: String, ids: List[String]): F[List[Message]]
   def findAllIdsByRecipient(appId: String, recipientId: String, deviceId: String): F[List[Long]]
   def insert(message: Message): F[Unit]
+  def deleteAllByUser(appId: String, userId: String): F[Unit]
 }

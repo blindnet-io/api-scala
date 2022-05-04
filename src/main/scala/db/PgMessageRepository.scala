@@ -34,4 +34,8 @@ class PgMessageRepository(xa: Transactor[IO]) extends MessageRepository[IO] {
           values (${message.id}, ${message.appId}::uuid, ${message.senderId}, ${message.senderDeviceId}, ${message.recipientId}, ${message.recipientDeviceId},
                   ${message.data}, ${message.dhKey}, ${message.publicIk}, ${message.publicEk}, ${message.timeSent}, ${message.timeDelivered}, ${message.timeRead})"""
       .update.run.transact(xa).map(_ => ())
+
+  override def deleteAllByUser(appId: String, userId: String): IO[Unit] =
+    sql"delete from messages where app_id=$appId::uuid and (sender_id=$userId or recipient_id=$userId)"
+      .update.run.transact(xa).void
 }

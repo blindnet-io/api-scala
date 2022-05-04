@@ -65,6 +65,14 @@ class MessageService(userRepo: UserRepository[IO], deviceRepo: UserDeviceReposit
         messages <- messageRepo.findAllByRecipientAndIds(uJwt.appId, uJwt.userId, deviceId, messageIds.toList)
         res <- Ok(messages.map(MessageResponse.apply))
       } yield res
+
+    // FR-M07 Delete All User Messages
+    case req @ DELETE -> Root / "messages" as jwt =>
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        _ <- messageRepo.deleteAllByUser(uJwt.appId, uJwt.userId)
+        res <- Ok()
+      } yield res
   }
 }
 
