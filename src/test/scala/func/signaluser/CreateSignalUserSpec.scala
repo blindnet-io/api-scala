@@ -4,7 +4,9 @@ package func.signaluser
 import util.*
 
 import cats.effect.*
+import cats.implicits.*
 import com.dimafeng.testcontainers.ContainerDef
+import io.blindnet.backend.models.OneTimeKey
 import io.circe.*
 import io.circe.literal.*
 import io.circe.syntax.*
@@ -38,33 +40,43 @@ class CreateSignalUserSpec extends UserAuthEndpointSpec("signal/users", Method.P
   override def testValidRequest(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
-    val testDevice = testUser.device()
+    val testDevices = List.fill(3)(testUser.device())
     val token = testApp.createUserToken(testUser.id, testUser.group)
 
     for {
       _ <- testApp.insert(serverApp)
-      res <- run(createCompleteRequest(testApp, testDevice, token))
-      body <- res.as[Json]
+      resps <- testDevices.traverse(testDevice => run(createCompleteRequest(testApp, testDevice, token)))
+      bodies <- resps.traverse(_.as[Json])
       dbUser <- serverApp.userRepo.findById(testApp.id, testUser.id)
-      dbDevice <- serverApp.userDeviceRepo.findById(testApp.id, testUser.id, testDevice.id)
-      dbOtKeys <- serverApp.oneTimeKeyRepo.findAllByDevice(testApp.id, testUser.id, testDevice.id)
+      dbDevices <- serverApp.userDeviceRepo.findAllByUser(testApp.id, testUser.id)
+      dbDevOtKeys <- testDevices.traverse(testDevice => serverApp.oneTimeKeyRepo.findAllByDevice(testApp.id, testUser.id, testDevice.id).map((testDevice.id, _)))
     } yield {
-      assertResult(Status.Ok)(res.status)
+      resps.foreach(res => assertResult(Status.Ok)(res.status))
 
-      assert(body.isString)
-      assertResult(testUser.id)(body.asString.get)
+      bodies.foreach(body => {
+        assert(body.isString)
+        assertResult(testUser.id)(body.asString.get)
+      })
 
       assert(dbUser.isDefined)
-      assert(dbDevice.isDefined)
-      assertResult(testDevice.ik.id)(dbDevice.get.publicIkId)
-      assertResult(testDevice.ik.get.publicKeyString)(dbDevice.get.publicIk)
-      assertResult(testDevice.pk.id)(dbDevice.get.publicSpkId)
-      assertResult(testDevice.pk.get.publicKeyString)(dbDevice.get.publicSpk)
-      assert(testDevice.ik.get.verifyFromString(testDevice.pk.get.publicKeyBytes, dbDevice.get.pkSig))
-      assertResult(10)(dbOtKeys.size)
-      testDevice.otks.foreach(otKey => {
-        val dbOtKey = dbOtKeys.find(_.id == otKey.id).get
-        assertResult(otKey.get.publicKeyString)(dbOtKey.key)
+
+      assertResult(testDevices.size)(dbDevices.size)
+      testDevices.foreach(testDevice => {
+        val dbDevice = dbDevices.find(_.id == testDevice.id)
+        val dbOtKeys = dbDevOtKeys.find(_._1 == testDevice.id).map(_._2).get
+
+        assert(dbDevice.isDefined)
+        assertResult(testDevice.ik.id)(dbDevice.get.publicIkId)
+        assertResult(testDevice.ik.get.publicKeyString)(dbDevice.get.publicIk)
+        assertResult(testDevice.pk.id)(dbDevice.get.publicSpkId)
+        assertResult(testDevice.pk.get.publicKeyString)(dbDevice.get.publicSpk)
+        assert(testDevice.ik.get.verifyFromString(testDevice.pk.get.publicKeyBytes, dbDevice.get.pkSig))
+
+        assertResult(10)(dbOtKeys.size)
+        testDevice.otks.foreach(otKey => {
+          val dbOtKey = dbOtKeys.find(_.id == otKey.id).get
+          assertResult(otKey.get.publicKeyString)(dbOtKey.key)
+        })
       })
       succeed
     }
@@ -123,6 +135,54 @@ class CreateSignalUserSpec extends UserAuthEndpointSpec("signal/users", Method.P
       res <- run(createCompleteRequest(testApp, testDevice, token))
     } yield {
       assertResult(Status.Forbidden)(res.status)
+    }
+  }
+
+  it("should forbid bad JWT signature") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val testDevice = testUser.device()
+    val token = testApp.createUserToken(testUser.id, testUser.group)
+
+    val badPayload = payload(testApp, testDevice, token).asObject.get.add("signedJwt", "badsign".asJson).asJson
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(token).withEntity(badPayload))
+    } yield {
+      assertResult(Status.Forbidden)(res.status)
+    }
+  }
+
+  it("should forbid bad PK signature") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val testDevice = testUser.device()
+    val token = testApp.createUserToken(testUser.id, testUser.group)
+
+    val badPayload = payload(testApp, testDevice, token).asObject.get.add("pkSig", "badsign".asJson).asJson
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(token).withEntity(badPayload))
+    } yield {
+      assertResult(Status.Forbidden)(res.status)
+    }
+  }
+
+  it("should fail on empty OTK array") {
+    val testApp = TestApp()
+    val testUser = TestUser()
+    val testDevice = testUser.device()
+    val token = testApp.createUserToken(testUser.id, testUser.group)
+
+    val badPayload = payload(testApp, testDevice, token).asObject.get.add("signalOneTimeKeys", List[Json]().asJson).asJson
+
+    for {
+      _ <- testApp.insert(serverApp)
+      res <- run(createAuthedRequest(token).withEntity(badPayload))
+    } yield {
+      assertResult(Status.BadRequest)(res.status)
     }
   }
 }
