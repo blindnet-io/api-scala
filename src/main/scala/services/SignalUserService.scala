@@ -91,7 +91,9 @@ class SignalUserService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepo
   }
 
   private def insertOneTimeKeys(appId: String, userId: String, deviceId: String, list: List[OneTimeKeyPayload]): IO[Unit] =
-    otKeyRepo.insertMany(list.map(item => OneTimeKey(
+    if list.isEmpty
+    then IO.raiseError(BadRequestException("Empty OTK array"))
+    else otKeyRepo.insertMany(list.map(item => OneTimeKey(
       appId, userId, deviceId, item.publicOpkID, item.publicOpk
     )))
 }
