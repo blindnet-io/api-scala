@@ -33,7 +33,7 @@ class ServerApp(xa: Transactor[IO]) {
   def server: Resource[IO, Server] =
     for {
       httpServer <- BlazeServerBuilder[IO]
-        .bindHttp(8087, "127.0.0.1")
+        .bindHttp(Env.get.port, Env.get.host)
         .withHttpApp(app)
         .withServiceErrorHandler(ErrorHandler.handler)
         .resource

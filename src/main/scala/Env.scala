@@ -14,6 +14,9 @@ abstract class Env() {
 
   val sendErrorMessages: Boolean
   val sendInternalErrorMessages: Boolean
+
+  val port: Int = sys.env.getOrElse("BN_PORT", "8087").toInt
+  val host: String = sys.env.getOrElse("BN_HOST", "127.0.0.1")
 }
 
 class ProductionEnv() extends StagingEnv {

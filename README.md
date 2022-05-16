@@ -13,6 +13,8 @@ Required if no default value.
 | BN_DB_URI      | Database URI         | `jdbc:postgresql://localhost/blindnet` |               |
 | BN_DB_USER     | Database username    | `blindnet`                             |               |
 | BN_DB_PASSWORD | Database password    | `blindnet`                             |               |
+| BN_PORT        | HTTP port            | 80                                     | 8087          |
+| BN_HOST        | HTTP host            | 0.0.0.0                                | 127.0.0.1     |
 
 
 ## Database (PostgreSQL)
