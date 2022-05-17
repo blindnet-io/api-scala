@@ -6,7 +6,8 @@ resources:
   - repo: self
 
 variables:
-  dockerRegistryServiceConnection: '0084ee1e-f5cb-45da-a945-ea3e1d1502a4'
+  dockerRegistryServiceConnection: 'blindnet-acr'
+  subscriptionServiceConnection: 'blindnet-backend-scala-arm'
   imageRepository: 'backendscala'
   containerRegistry: 'blindnet.azurecr.io'
   dockerfilePath: 'Dockerfile'
@@ -58,7 +59,7 @@ steps:
   - task: AzureWebAppContainer@1
     displayName: Deploy
     inputs:
-      azureSubscription: 'backend-scala-deploy'
+      azureSubscription: $(subscriptionServiceConnection)
       appName: 'blindnet-backend'
       imageName: $(containerRegistry)/$(imageRepository):$(tag)
       resourceGroupName: 'backend-scala'
