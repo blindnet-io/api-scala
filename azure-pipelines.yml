@@ -1,5 +1,6 @@
 trigger:
   - develop
+  - main
 
 resources:
   - repo: self
@@ -9,7 +10,11 @@ variables:
   imageRepository: 'backendscala'
   containerRegistry: 'blindnet.azurecr.io'
   dockerfilePath: 'Dockerfile'
+  branch: ${{ variables['Build.SourceBranchName'] }}
   tag: '$(Build.BuildId)'
+  deployToSlot: ${{ !eq(variables['Build.SourceBranchName'], 'main') }}
+  ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+    slot: 'staging'
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -38,21 +43,25 @@ steps:
       repository: $(imageRepository)
       dockerfile: $(dockerfilePath)
       containerRegistry: $(dockerRegistryServiceConnection)
-      tags: $(tag)
-      arguments: '--build-arg BN_ENV=staging'
+      tags: |
+        $(tag)
+        $(branch)
   - task: Docker@2
     displayName: Push Docker Image
     inputs:
       command: push
       repository: $(imageRepository)
       containerRegistry: $(dockerRegistryServiceConnection)
-      tags: $(tag)
+      tags: |
+        $(tag)
+        $(branch)
   - task: AzureWebAppContainer@1
     displayName: Deploy
     inputs:
       azureSubscription: 'backend-scala-deploy'
       appName: 'blindnet-backend'
       imageName: $(containerRegistry)/$(imageRepository):$(tag)
-      deployToSlotOrASE: true
       resourceGroupName: 'backend-scala'
-      slotName: staging
+      ${{ if variables.deployToSlot }}:
+        deployToSlotOrASE: true
+        slotName: ${slot}
