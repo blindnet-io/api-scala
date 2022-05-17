@@ -12,7 +12,7 @@ variables:
   dockerfilePath: 'Dockerfile'
   branch: ${{ variables['Build.SourceBranchName'] }}
   tag: '$(Build.BuildId)'
-  deployToSlot: ${{ !eq(variables['Build.SourceBranchName'], 'main') }}
+  deployToSlot: ${{ ne(variables['Build.SourceBranchName'], 'main') }}
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     slot: 'staging'
 
