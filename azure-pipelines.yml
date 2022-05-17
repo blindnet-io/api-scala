@@ -65,4 +65,4 @@ steps:
       resourceGroupName: 'backend-scala'
       ${{ if variables.deployToSlot }}:
         deployToSlotOrASE: true
-        slotName: ${slot}
+        slotName: $(slot)
