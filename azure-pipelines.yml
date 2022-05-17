@@ -60,7 +60,7 @@ steps:
     displayName: Deploy
     inputs:
       azureSubscription: $(subscriptionServiceConnection)
-      appName: 'blindnet-backend'
+      appName: 'blindnet-backend-scala'
       imageName: $(containerRegistry)/$(imageRepository):$(tag)
       resourceGroupName: 'backend-scala'
       ${{ if variables.deployToSlot }}:
