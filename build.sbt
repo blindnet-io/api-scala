@@ -3,7 +3,7 @@ ThisBuild / scalaVersion := "3.1.1"
 
 Test / fork := true
 
-val circeVersion = "0.14.2-SNAPSHOT"
+val circeVersion = "0.14.2"
 val doobieVersion = "1.0.0-RC1"
 val http4sVersion = "0.23.11"
 
