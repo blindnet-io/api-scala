@@ -13,8 +13,9 @@ variables:
   dockerfilePath: 'Dockerfile'
   branch: ${{ variables['Build.SourceBranchName'] }}
   tag: '$(Build.BuildId)'
-  deployToSlot: ${{ ne(variables['Build.SourceBranchName'], 'main') }}
-  ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+  ${{ if eq(variables['Build.SourceBranchName'], 'main') }}:
+    slot: 'production'
+  ${{ elseif eq(variables['Build.SourceBranchName'], 'develop') }}:
     slot: 'staging'
 
 pool:
@@ -57,6 +58,5 @@ steps:
       appName: 'blindnet-backend-scala'
       imageName: $(containerRegistry)/$(imageRepository):$(tag)
       resourceGroupName: 'backend-scala'
-      ${{ if variables.deployToSlot }}:
-        deployToSlotOrASE: true
-        slotName: $(slot)
+      deployToSlotOrASE: true
+      slotName: $(slot)
