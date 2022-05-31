@@ -26,7 +26,7 @@ class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
 
   override def findAllByIds(appId: String, ids: List[String]): IO[List[User]] =
     NonEmptyList.fromList(ids) match
-      case Some(nel) => (fr"select app, id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from users where app=$appId::uuid and"
+      case Some(nel) => (fr"select app, id, group_id from users where app=$appId::uuid and"
         ++ Fragments.in(fr"id", nel))
         .query[User].to[List].transact(xa)
       case None => IO.pure(Nil)
