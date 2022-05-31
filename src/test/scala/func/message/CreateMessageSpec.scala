@@ -12,11 +12,12 @@ import io.circe.syntax.*
 import org.http4s.*
 import org.http4s.circe.*
 import org.http4s.implicits.*
-import org.scalatest.Assertion
+import org.scalatest.{Assertion, Ignore}
 
 import java.time.Instant
 import java.util.UUID
 
+@Ignore
 class CreateMessageSpec extends UserAuthEndpointSpec("messages", Method.POST) {
   def payload(recipientId: String, message: String, timestamp: String): Json =
     json"""{
