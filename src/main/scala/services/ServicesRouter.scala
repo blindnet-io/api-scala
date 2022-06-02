@@ -28,11 +28,13 @@ class ServicesRouter(
     oneTimeKeyRepo: OneTimeKeyRepository[IO],
     documentRepo: DocumentRepository[IO],
     documentKeyRepo: DocumentKeyRepository[IO],
-    messageRepo: MessageRepository[IO]) {
+    messageRepo: MessageRepository[IO],
+    storageObjectRepo: StorageObjectRepository[IO]) {
   private val userService = UserService(userRepo, userKeysRepo)
   private val signalUserService = SignalUserService(userRepo, deviceRepo, oneTimeKeyRepo)
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo)
   private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
+  private val storageService = StorageService(storageObjectRepo)
 
   private val authenticator = JwtAuthenticator(appRepo, userRepo)
 
@@ -41,6 +43,7 @@ class ServicesRouter(
     <+> signalUserService.authedRoutes
     <+> documentService.authedRoutes
     <+> messageService.authedRoutes
+    <+> storageService.authedRoutes
 
   private def routes: HttpRoutes[IO] = authenticator.authMiddleware(authedRoutes)
   def corsRoutes: HttpRoutes[IO] = CORS.policy.withAllowOriginAll(routes)
