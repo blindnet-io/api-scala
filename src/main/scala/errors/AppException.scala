@@ -14,9 +14,14 @@ extension[T](o: Option[T]) {
   def orRaise(t: => Throwable): IO[T] = o match
     case Some(value) => IO.pure(value)
     case None => IO.raiseError(t)
+  def thenRaise(t: => Throwable): IO[Unit] = o match
+    case Some(value) => IO.raiseError(t)
+    case None => IO.unit
   
   def orBadRequest(message: => String): IO[T] = orRaise(BadRequestException(message))
   def orNotFound: IO[T] = orRaise(NotFoundException())
+  def thenBadRequest(message: => String): IO[Unit] = thenRaise(BadRequestException(message))
+  def thenNotFound: IO[Unit] = thenRaise(NotFoundException())
 }
 
 extension[T](o: IO[Option[T]]) {
@@ -24,6 +29,8 @@ extension[T](o: IO[Option[T]]) {
   
   def orBadRequest(message: => String): IO[T] = o.flatMap(_.orBadRequest(message))
   def orNotFound: IO[T] = o.flatMap(_.orNotFound)
+  def thenBadRequest(message: => String): IO[Unit] = o.flatMap(_.thenBadRequest(message))
+  def thenNotFound: IO[Unit] = o.flatMap(_.thenNotFound)
 }
 
 extension[T](t: Try[T]) {

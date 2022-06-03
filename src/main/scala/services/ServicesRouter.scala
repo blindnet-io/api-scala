@@ -32,7 +32,7 @@ class ServicesRouter(
     storageObjectRepo: StorageObjectRepository[IO]) {
   private val userService = UserService(userRepo, userKeysRepo)
   private val signalUserService = SignalUserService(userRepo, deviceRepo, oneTimeKeyRepo)
-  private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo)
+  private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo, storageObjectRepo)
   private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
   private val storageService = StorageService(storageObjectRepo)
 

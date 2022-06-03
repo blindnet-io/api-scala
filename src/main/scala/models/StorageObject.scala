@@ -10,5 +10,6 @@ case class StorageObject(
 )
 
 trait StorageObjectRepository[F[_]] {
+  def findById(appId: String, id: String): F[Option[StorageObject]]
   def insert(obj: StorageObject): F[Unit]
 }

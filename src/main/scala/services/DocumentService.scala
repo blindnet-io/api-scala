@@ -21,7 +21,7 @@ import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.AuthMiddleware
 
-class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO]) {
+class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentRepository[IO], documentKeyRepo: DocumentKeyRepository[IO], storageObjectRepo: StorageObjectRepository[IO]) {
   implicit val uuidGen: UUIDGen[IO] = UUIDGen.fromSync
 
   def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
@@ -35,6 +35,26 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         _ <- userRepo.findAllByIds(auJwt.appId, payload.map(_.userID)).ensureSize(payload.size)
         docId <- UUIDGen.randomString
         doc = Document(auJwt.appId, docId)
+        _ <- documentRepo.insert(doc)
+        _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
+        res <- Ok(doc.id)
+      } yield res
+
+    // Create Document From StorageObject
+    case req @ POST -> Root / "documents" / objId as jwt =>
+      for {
+        auJwt: AnyUserJwt <- jwt.asAnyUser
+        payload <- req.req.as[CreateDocumentPayload]
+        _ <- if payload.nonEmpty then IO.unit else IO.raiseError(BadRequestException("Empty payload"))
+        _ <- auJwt.containsUserIds(payload.map(item => item.userID), userRepo)
+        obj <- storageObjectRepo.findById(auJwt.appId, objId).orNotFound
+        _ <- if auJwt match
+          case uJwt: UserJwt => obj.userId.contains(uJwt.userId)
+          case tuJwt: TempUserJwt => obj.tokenId.contains(tuJwt.tokenId)
+        then IO.unit else IO.raiseError(AuthException())
+        _ <- userRepo.findAllByIds(auJwt.appId, payload.map(_.userID)).ensureSize(payload.size)
+        _ <- documentRepo.findById(auJwt.appId, objId).thenBadRequest("Document already exists")
+        doc = Document(auJwt.appId, objId)
         _ <- documentRepo.insert(doc)
         _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
         res <- Ok(doc.id)
