@@ -25,7 +25,7 @@ import java.time.Instant
 import java.util.{Random, UUID}
 import scala.util.Try
 
-class StorageService(storageObjectRepo: StorageObjectRepository[IO]) {
+class StorageService(storageObjectRepo: StorageObjectRepository[IO], docKeyRepo: DocumentKeyRepository[IO]) {
   implicit val uuidGen: UUIDGen[IO] = UUIDGen.fromSync
 
   def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
@@ -50,6 +50,16 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO]) {
         _ <- obj.isOwner(auJwt).orForbidden
         _ <- storageObjectRepo.updateMetadataById(auJwt.appId, obj.id, payload.metadata)
         res <- Ok()
+      } yield res
+
+    // Get Metadata
+    case req @ GET -> Root / "metadata" as jwt =>
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        dataId <- req.req.params.get("dataId").orBadRequest("Missing dataId")
+        obj <- storageObjectRepo.findById(uJwt.appId, dataId).orNotFound
+        _ <- docKeyRepo.findByDocumentAndUser(uJwt.appId, dataId, uJwt.userId).orNotFound
+        res <- Ok(obj.meta)
       } yield res
   }
 }
