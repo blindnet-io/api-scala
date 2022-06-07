@@ -1,6 +1,8 @@
 package io.blindnet.backend
 package errors
 
+import auth.AuthException
+
 import cats.effect.*
 
 import scala.util.{Failure, Success, Try}
@@ -45,4 +47,8 @@ extension[T](l: IO[List[T]]) {
       if list.size == n then IO.pure(list)
       else IO.raiseError(e)
     )
+}
+
+extension(b: Boolean) {
+  def orForbidden: IO[Unit] = if b then IO.unit else IO.raiseError(AuthException())
 }

@@ -20,4 +20,8 @@ class PgStorageObjectRepository(xa: Transactor[IO]) extends StorageObjectReposit
     sql"""insert into storage_objects (app_id, id, user_id, token_id, meta)
           values (${obj.appId}::uuid, ${obj.id}::uuid, ${obj.userId}, ${obj.tokenId}, ${obj.meta})"""
       .update.run.transact(xa).void
+
+  override def updateMetadataById(appId: String, id: String, metadata: String): IO[Unit] =
+    sql"""update storage_objects set meta=$metadata where app_id=$appId::uuid and id=$id::uuid"""
+      .update.run.transact(xa).void
 }

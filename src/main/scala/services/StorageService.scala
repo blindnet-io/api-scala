@@ -40,5 +40,21 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO]) {
         _ <- storageObjectRepo.insert(obj)
         res <- Ok(objId)
       } yield res
+
+    // Set Metadata
+    case req @ POST -> Root / "metadata" as jwt =>
+      for {
+        auJwt: AnyUserJwt <- jwt.asAnyUser
+        payload <- req.req.as[SetMetadataPayload]
+        obj <- storageObjectRepo.findById(auJwt.appId, payload.dataID).orNotFound
+        _ <- obj.isOwner(auJwt).orForbidden
+        _ <- storageObjectRepo.updateMetadataById(auJwt.appId, obj.id, payload.metadata)
+        res <- Ok()
+      } yield res
   }
 }
+
+case class SetMetadataPayload(
+  dataID: String,
+  metadata: String
+)
