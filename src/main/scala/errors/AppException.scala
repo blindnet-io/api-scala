@@ -50,5 +50,8 @@ extension[T](l: IO[List[T]]) {
 }
 
 extension(b: Boolean) {
-  def orForbidden: IO[Unit] = if b then IO.unit else IO.raiseError(AuthException())
+  def orRaise(t: => Throwable): IO[Unit] = if b then IO.unit else IO.raiseError(t)
+    
+  def orBadRequest(message: => String): IO[Unit] = orRaise(BadRequestException(message))
+  def orForbidden: IO[Unit] = orRaise(AuthException())
 }

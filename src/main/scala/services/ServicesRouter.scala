@@ -34,7 +34,7 @@ class ServicesRouter(
   private val signalUserService = SignalUserService(userRepo, deviceRepo, oneTimeKeyRepo)
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo, storageObjectRepo)
   private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
-  private val storageService = StorageService(storageObjectRepo)
+  private val storageService = StorageService(storageObjectRepo, documentKeyRepo)
 
   private val authenticator = JwtAuthenticator(appRepo, userRepo)
 

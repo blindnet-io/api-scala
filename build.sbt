@@ -16,6 +16,7 @@ lazy val root = (project in file("."))
     organizationHomepage := Some(url("https://blindnet.io")),
     idePackagePrefix := Some("io.blindnet.backend"),
     libraryDependencies ++= Seq(
+      "com.azure"              %  "azure-storage-blob"              % "12.17.0",
       "com.dimafeng"           %% "testcontainers-scala-scalatest"  % testContainersVersion % Test,
       "com.dimafeng"           %% "testcontainers-scala-postgresql" % testContainersVersion % Test,
       "com.github.jwt-scala"   %% "jwt-circe"                       % "9.0.5",
