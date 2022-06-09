@@ -40,4 +40,9 @@ lazy val root = (project in file("."))
     ),
     assembly / mainClass := Some("io.blindnet.backend.Main"),
     assembly / assemblyJarName := "blindnet.jar",
+    assembly / assemblyMergeStrategy := {
+      case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
+      case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.discard
+      case x => assemblyMergeStrategy.value(x)
+    }
   )
