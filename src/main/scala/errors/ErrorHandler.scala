@@ -3,15 +3,17 @@ package errors
 
 import auth.AuthException
 
+import cats.data.OptionT
 import cats.effect.*
 import org.http4s.*
+import org.http4s.server.middleware.ErrorHandling
 import org.typelevel.log4cats.*
 import org.typelevel.log4cats.slf4j.*
 
 object ErrorHandler {
   val logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
-  val handler: Request[IO] => PartialFunction[Throwable, IO[Response[IO]]] = req => {
+  val handler: PartialFunction[Throwable, IO[Response[IO]]] = {
     case e: BadRequestException => for {
       _ <- logger.debug(e)("Bad request exception")
     } yield Response(Status.BadRequest).condEntity(Env.get.sendErrorMessages, e.getMessage)
@@ -32,6 +34,9 @@ object ErrorHandler {
       _ <- logger.error(e)("Unhandled exception")
     } yield Response(Status.InternalServerError).condEntity(Env.get.sendInternalErrorMessages, e.getMessage)
   }
+
+  def apply(httpRoutes: HttpRoutes[IO]): HttpRoutes[IO] =
+    ErrorHandling.Custom.recoverWith(httpRoutes)(handler.andThen(OptionT.liftF))
 }
 
 extension(m: Response[IO]) {

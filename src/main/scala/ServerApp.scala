@@ -31,7 +31,7 @@ class ServerApp(xa: Transactor[IO]) {
         appRepo, userRepo, userKeysRepo, userDeviceRepo, oneTimeKeyRepo,
         documentRepo, documentKeyRepo, messageRepo,
         storageObjectRepo, storageBlockRepo
-      ).corsRoutes,
+      ).routes,
     ).orNotFound
   
   def server: Resource[IO, Server] =
@@ -39,7 +39,6 @@ class ServerApp(xa: Transactor[IO]) {
       httpServer <- BlazeServerBuilder[IO]
         .bindHttp(Env.get.port, Env.get.host)
         .withHttpApp(app)
-        .withServiceErrorHandler(ErrorHandler.handler)
         .resource
     } yield httpServer
 }

@@ -30,7 +30,7 @@ abstract class FuncSpec extends AsyncFunSpec with AsyncIOSpec with ForAllTestCon
   def serverApp: ServerApp = _serverApp.get
     
   def run(req: Request[IO]): IO[Response[IO]] =
-    serverApp.app.run(req).handleErrorWith(ErrorHandler.handler(req)(_))
+    serverApp.app.run(req)
 
   override def afterStart(): Unit = {
     Security.addProvider(BouncyCastleProvider())

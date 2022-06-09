@@ -2,6 +2,7 @@ package io.blindnet.backend
 package services
 
 import auth.*
+import errors.ErrorHandler
 import models.*
 
 import cats.data.{Kleisli, OptionT}
@@ -39,13 +40,19 @@ class ServicesRouter(
 
   private val authenticator = JwtAuthenticator(appRepo, userRepo)
 
-  private def authedRoutes =
+  private def unsafeRoutes =
     userService.authedRoutes
     <+> signalUserService.authedRoutes
     <+> documentService.authedRoutes
     <+> messageService.authedRoutes
     <+> storageService.authedRoutes
 
-  private def routes: HttpRoutes[IO] = authenticator.authMiddleware(authedRoutes)
-  def corsRoutes: HttpRoutes[IO] = CORS.policy.withAllowOriginAll(routes)
+  def routes: HttpRoutes[IO] =
+    CORS.policy.withAllowOriginAll(
+      ErrorHandler(
+        authenticator.authMiddleware(
+          unsafeRoutes
+        )
+      )
+    )
 }
