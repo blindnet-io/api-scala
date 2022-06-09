@@ -1,6 +1,7 @@
 package io.blindnet.backend
 package auth
 
+import errors.*
 import models.*
 
 import cats.effect.*
@@ -50,7 +51,7 @@ sealed trait AnyUserJwt extends AuthJwt {
 
 case class UserJwt(appId: String, userId: String, groupId: String, exists: Boolean = false) extends AnyUserJwt {
   override protected def check(): IO[Unit] =
-    if exists then IO.unit else IO.raiseError(AuthException("User does not exist"))
+    if exists then IO.unit else IO.raiseError(BadRequestException("Auth user does not exist"))
 }
 object UserJwt {
   def apply(appId: String, userId: String, groupId: String): UserJwt = new UserJwt(appId, userId, groupId)
