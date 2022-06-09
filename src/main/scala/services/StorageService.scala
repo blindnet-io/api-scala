@@ -2,6 +2,7 @@ package io.blindnet.backend
 package services
 
 import auth.*
+import azure.AzureStorage
 import errors.*
 import models.*
 
@@ -52,7 +53,22 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO], docKeyRepo:
         obj <- storageObjectRepo.findById(auJwt.appId, payload.dataId).orNotFound
         _ <- obj.isOwner(auJwt).orForbidden
         blockId <- UUIDGen.randomString
-        res <- Ok(signBlockUrl(obj.id, blockId, payload.chunkSize))
+        signed <- AzureStorage.signBlockUpload(obj.id, blockId, payload.chunkSize)
+        res <- Ok(BlockUploadUrlResponse(
+          signed.authorization, signed.date, blockId, signed.url
+        ))
+      } yield res
+
+    // Finish Upload
+    case req @ POST -> Root / "finish-upload" as jwt =>
+      for {
+        auJwt: AnyUserJwt <- jwt.asAnyUser
+        payload <- req.req.as[FinishUploadPayload]
+        _ <- payload.blockIds.nonEmpty.orBadRequest("Empty blockIds")
+        obj <- storageObjectRepo.findById(auJwt.appId, payload.dataId).orNotFound
+        _ <- obj.isOwner(auJwt).orForbidden
+        _ <- AzureStorage.finishBlockBlob(obj.id, payload.blockIds)
+        res <- Ok()
       } yield res
 
     // Set Metadata
@@ -76,32 +92,6 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO], docKeyRepo:
         res <- Ok(obj.meta)
       } yield res
   }
-
-  private def signBlockUrl(blobId: String, blockId: String, blockSize: Int): IO[BlockUploadUrlResponse] = IO {
-    val accountName = Env.get.azureStorageAccountName
-    val accountKey = Env.get.azureStorageAccountKey
-    val containerName = Env.get.azureStorageContainerName
-
-    val date = DateTimeFormatter.RFC_1123_DATE_TIME.format(Instant.now())
-    val toSign = List(
-      "PUT", "", "",
-      blockSize.toString, "",
-      "application/octet-stream", "", "", "", "", "", "",
-      s"x-ms-blob-type:BlockBlob\\nx-ms-date:$date\\nx-ms-version:2021-04-10",
-      s"/$accountName/$containerName/$blobId",
-      s"blockid:$blockId",
-      "comp:block",
-    ).mkString("\n")
-
-    val signature = StorageSharedKeyCredential(accountName, accountKey).computeHmac256(toSign)
-
-    BlockUploadUrlResponse(
-      s"SharedKey $accountName:$signature",
-      date,
-      blockId,
-      s"https://$accountName.blob.core.windows.net/$containerName/$blobId?blockid=$blockId&comp=block"
-    )
-  }
 }
 
 case class BlockUploadUrlPayload(
@@ -114,6 +104,11 @@ case class BlockUploadUrlResponse(
   date: String,
   blockId: String,
   url: String
+)
+
+case class FinishUploadPayload(
+  dataId: String,
+  blockIds: List[String]
 )
 
 case class SetMetadataPayload(
