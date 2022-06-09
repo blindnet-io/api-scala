@@ -6,7 +6,7 @@ import azure.AzureStorage
 import errors.*
 import models.*
 
-import cats.data.{EitherT, Kleisli, OptionT}
+import cats.data.{EitherT, Kleisli, NonEmptyList, OptionT}
 import cats.effect.*
 import cats.effect.std.UUIDGen
 import cats.implicits.*
@@ -28,7 +28,9 @@ import java.time.format.DateTimeFormatter
 import java.util.{Random, UUID}
 import scala.util.Try
 
-class StorageService(storageObjectRepo: StorageObjectRepository[IO], docKeyRepo: DocumentKeyRepository[IO]) {
+class StorageService(storageObjectRepo: StorageObjectRepository[IO],
+                     storageBlockRepo: StorageBlockRepository[IO],
+                     docKeyRepo: DocumentKeyRepository[IO]) {
   implicit val uuidGen: UUIDGen[IO] = UUIDGen.fromSync
 
   def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
@@ -53,6 +55,7 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO], docKeyRepo:
         obj <- storageObjectRepo.findById(auJwt.appId, payload.dataId).orNotFound
         _ <- obj.isOwner(auJwt).orForbidden
         blockId <- UUIDGen.randomString
+        _ <- storageBlockRepo.insert(StorageBlock(auJwt.appId, obj.id, blockId))
         signed <- AzureStorage.signBlockUpload(obj.id, blockId, payload.chunkSize)
         res <- Ok(BlockUploadUrlResponse(
           signed.authorization, signed.date, blockId, signed.url
@@ -65,8 +68,10 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO], docKeyRepo:
         auJwt: AnyUserJwt <- jwt.asAnyUser
         payload <- req.req.as[FinishUploadPayload]
         _ <- payload.blockIds.nonEmpty.orBadRequest("Empty blockIds")
+        nel = NonEmptyList.fromListUnsafe(payload.blockIds.distinct)
         obj <- storageObjectRepo.findById(auJwt.appId, payload.dataId).orNotFound
         _ <- obj.isOwner(auJwt).orForbidden
+        _ <- (storageBlockRepo.countByIds(auJwt.appId, obj.id, nel) == nel.size).orBadRequest("Bad blockId")
         _ <- AzureStorage.finishBlockBlob(obj.id, payload.blockIds)
         res <- Ok()
       } yield res

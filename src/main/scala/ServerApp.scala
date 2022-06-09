@@ -23,12 +23,14 @@ class ServerApp(xa: Transactor[IO]) {
   val documentKeyRepo: PgDocumentKeyRepository = PgDocumentKeyRepository(xa)
   val messageRepo: PgMessageRepository = PgMessageRepository(xa)
   val storageObjectRepo: PgStorageObjectRepository = PgStorageObjectRepository(xa)
+  val storageBlockRepo: PgStorageBlockRepository = PgStorageBlockRepository(xa)
 
   def app: HttpApp[IO] =
     Router(
       "/api/v1" -> ServicesRouter(
         appRepo, userRepo, userKeysRepo, userDeviceRepo, oneTimeKeyRepo,
-        documentRepo, documentKeyRepo, messageRepo, storageObjectRepo
+        documentRepo, documentKeyRepo, messageRepo,
+        storageObjectRepo, storageBlockRepo
       ).corsRoutes,
     ).orNotFound
   
