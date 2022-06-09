@@ -71,9 +71,22 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO],
         nel = NonEmptyList.fromListUnsafe(payload.blockIds.distinct)
         obj <- storageObjectRepo.findById(auJwt.appId, payload.dataId).orNotFound
         _ <- obj.isOwner(auJwt).orForbidden
-        _ <- (storageBlockRepo.countByIds(auJwt.appId, obj.id, nel) == nel.size).orBadRequest("Bad blockId")
+        _ <- storageBlockRepo.countByIds(auJwt.appId, obj.id, nel)
+          .map(_ == nel.size).flatMap(_.orBadRequest("Bad blockId"))
         _ <- AzureStorage.finishBlockBlob(obj.id, payload.blockIds)
         res <- Ok()
+      } yield res
+
+    // Get File URL
+    case req @ GET -> Root / "get-file-url" / objectId as jwt =>
+      for {
+        uJwt: UserJwt <- jwt.asUser
+        obj <- storageObjectRepo.findById(uJwt.appId, objectId).orNotFound
+        _ <- docKeyRepo.findByDocumentAndUser(uJwt.appId, objectId, uJwt.userId).orNotFound
+        signed <- AzureStorage.signBlobDownload(obj.id)
+        res <- Ok(FileDownloadUrlResponse(
+          signed.authorization, signed.date, signed.url
+        ))
       } yield res
 
     // Set Metadata
@@ -114,6 +127,12 @@ case class BlockUploadUrlResponse(
 case class FinishUploadPayload(
   dataId: String,
   blockIds: List[String]
+)
+
+case class FileDownloadUrlResponse(
+  authorization: String,
+  date: String,
+  url: String
 )
 
 case class SetMetadataPayload(
