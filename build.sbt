@@ -36,7 +36,7 @@ lazy val root = (project in file("."))
       "org.tpolecat"           %% "doobie-postgres"                 % doobieVersion,
       "org.typelevel"          %% "cats-effect"                     % "3.3.11",
       "org.typelevel"          %% "cats-effect-testing-scalatest"   % "1.4.0" % Test,
-      "org.typelevel"          %% "log4cats-slf4j"                  % "2.3.0",
+      "org.typelevel"          %% "log4cats-slf4j"                  % "2.3.1",
     ),
     assembly / mainClass := Some("io.blindnet.backend.Main"),
     assembly / assemblyJarName := "blindnet.jar",
