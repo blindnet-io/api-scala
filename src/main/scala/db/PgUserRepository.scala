@@ -12,9 +12,12 @@ import doobie.postgres.*
 import doobie.postgres.implicits.*
 
 class PgUserRepository(xa: Transactor[IO]) extends UserRepository[IO] {
-  override def countByIdsOutsideGroup(appId: String, groupId: String, usersId: List[String]): IO[Long] =
-    sql"select count(*) from users where app=$appId::uuid and id in $usersId and group_id != $groupId"
-      .query[Long].unique.transact(xa)
+  override def countByIdsOutsideGroup(appId: String, groupId: String, userIds: List[String]): IO[Long] =
+    NonEmptyList.fromList(userIds) match
+      case Some(nel) => (fr"select count(*) from users where app=$appId::uuid and group_id != $groupId and"
+        ++ Fragments.in(fr"id", nel))
+        .query[Long].unique.transact(xa)
+      case None => IO.pure(0)
 
   override def findById(appId: String, id: String): IO[Option[User]] =
     sql"select app, id, group_id from users where app=$appId::uuid and id=$id"
