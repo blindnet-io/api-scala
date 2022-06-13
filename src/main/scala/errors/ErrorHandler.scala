@@ -28,7 +28,7 @@ object ErrorHandler {
 
     case e: NotFoundException => for {
       _ <- logger.debug(e)("NotFound exception")
-    } yield Response(Status.NotFound)
+    } yield Response(Status.NotFound).condEntity(Env.get.sendErrorMessages, e.getMessage)
 
     case e: Exception => for {
       _ <- logger.error(e)("Unhandled exception")
