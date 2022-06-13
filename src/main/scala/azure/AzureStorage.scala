@@ -54,9 +54,8 @@ object AzureStorage {
   
   def finishBlockBlob(blobId: String, blockIds: List[String]): IO[Unit] = IO {
     BlobClientBuilder()
+      .endpoint(s"https://$accountName.blob.core.windows.net/$containerName/$blobId")
       .credential(credential)
-      .containerName(containerName)
-      .blobName(blobId)
       .buildClient()
       .getBlockBlobClient
       .commitBlockList(blockIds.asJava)
