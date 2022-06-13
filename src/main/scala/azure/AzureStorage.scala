@@ -5,9 +5,8 @@ import cats.effect.IO
 import com.azure.storage.blob.BlobClientBuilder
 import com.azure.storage.common.StorageSharedKeyCredential
 
-import java.time.Instant
+import java.time.{Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
-
 import scala.jdk.CollectionConverters.*
 
 object AzureStorage {
@@ -21,7 +20,7 @@ object AzureStorage {
     IO(credential.computeHmac256(toSign.mkString("\n")))
 
   def signBlockUpload(blobId: String, blockId: String, blockSize: Int): IO[SignedBlockUpload] =
-    val date = DateTimeFormatter.RFC_1123_DATE_TIME.format(Instant.now())
+    val date = DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneOffset.UTC).format(Instant.now())
 
     sign(List(
       "PUT", "", "",
@@ -40,7 +39,7 @@ object AzureStorage {
     ))
 
   def signBlobDownload(blobId: String): IO[SignedBlobDownload] =
-    val date = DateTimeFormatter.RFC_1123_DATE_TIME.format(Instant.now())
+    val date = DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneOffset.UTC).format(Instant.now())
 
     sign(List(
       "GET", "", "", "", "", "", "", "", "", "", "", "",
