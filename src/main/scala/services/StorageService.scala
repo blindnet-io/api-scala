@@ -43,7 +43,7 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO],
           case UserJwt(appId, userId, _, _) => StorageObject(appId, objId, Some(userId), None)
           case TempUserJwt(appId, _, tokenId, _) => StorageObject(appId, objId, None, Some(tokenId))
         _ <- storageObjectRepo.insert(obj)
-        res <- Ok(objId)
+        res <- Ok(InitUploadResponse(objId))
       } yield res
 
     // Get Block Upload URL
@@ -111,6 +111,10 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO],
       } yield res
   }
 }
+
+case class InitUploadResponse(
+  dataId: String,
+)
 
 case class BlockUploadUrlPayload(
   dataId: String,
