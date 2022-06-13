@@ -171,3 +171,7 @@ object UserPublicKeysResponse {
 sealed trait UsersPublicKeysPayload
 case class GIDUsersPublicKeysPayload(groupId: String) extends UsersPublicKeysPayload
 case class UIDUsersPublicKeysPayload(userIds: List[String]) extends UsersPublicKeysPayload
+implicit val dUsersPublicKeysPayload: Decoder[UsersPublicKeysPayload] = (c: HCursor) =>
+  if c.downField("groupId").succeeded
+  then c.downField("groupId").as[String].map(GIDUsersPublicKeysPayload.apply)
+  else c.downField("userIds").as[List[String]].map(UIDUsersPublicKeysPayload.apply)
