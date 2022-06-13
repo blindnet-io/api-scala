@@ -97,7 +97,7 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO],
         obj <- storageObjectRepo.findById(auJwt.appId, payload.dataID).orNotFound
         _ <- obj.isOwner(auJwt).orForbidden
         _ <- storageObjectRepo.updateMetadataById(auJwt.appId, obj.id, payload.metadata)
-        res <- Ok()
+        res <- Ok(true)
       } yield res
 
     // Get Metadata
