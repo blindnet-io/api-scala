@@ -5,8 +5,8 @@ Test / fork := true
 
 val circeVersion = "0.14.2"
 val doobieVersion = "1.0.0-RC1"
-val http4sVersion = "0.23.11"
-val testContainersVersion = "0.40.7"
+val http4sVersion = "0.23.12"
+val testContainersVersion = "0.40.8"
 
 lazy val root = (project in file("."))
   .settings(
@@ -16,7 +16,7 @@ lazy val root = (project in file("."))
     organizationHomepage := Some(url("https://blindnet.io")),
     idePackagePrefix := Some("io.blindnet.backend"),
     libraryDependencies ++= Seq(
-      "com.azure"              %  "azure-storage-blob"              % "12.17.0",
+      "com.azure"              %  "azure-storage-blob"              % "12.17.1",
       "com.dimafeng"           %% "testcontainers-scala-scalatest"  % testContainersVersion % Test,
       "com.dimafeng"           %% "testcontainers-scala-postgresql" % testContainersVersion % Test,
       "com.github.jwt-scala"   %% "jwt-circe"                       % "9.0.5",
@@ -25,7 +25,7 @@ lazy val root = (project in file("."))
       "io.circe"               %% "circe-literal"                   % circeVersion % Test,
       "org.apache.commons"     %  "commons-lang3"                   % "3.12.0" % Test,
       "org.bouncycastle"       %  "bcprov-jdk15on"                  % "1.70",
-      "org.flywaydb"           %  "flyway-core"                     % "8.5.10",
+      "org.flywaydb"           %  "flyway-core"                     % "8.5.12",
       "org.http4s"             %% "http4s-blaze-server"             % http4sVersion,
       "org.http4s"             %% "http4s-circe"                    % http4sVersion,
       "org.http4s"             %% "http4s-dsl"                      % http4sVersion,
@@ -34,7 +34,7 @@ lazy val root = (project in file("."))
       "org.tpolecat"           %% "doobie-core"                     % doobieVersion,
       "org.tpolecat"           %% "doobie-hikari"                   % doobieVersion,
       "org.tpolecat"           %% "doobie-postgres"                 % doobieVersion,
-      "org.typelevel"          %% "cats-effect"                     % "3.3.11",
+      "org.typelevel"          %% "cats-effect"                     % "3.3.12",
       "org.typelevel"          %% "cats-effect-testing-scalatest"   % "1.4.0" % Test,
       "org.typelevel"          %% "log4cats-slf4j"                  % "2.3.1",
     ),
