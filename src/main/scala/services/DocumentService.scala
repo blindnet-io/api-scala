@@ -40,26 +40,6 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         res <- Ok(doc.id)
       } yield res
 
-    // Create Document From StorageObject
-    case req @ POST -> Root / "documents" / objId as jwt =>
-      for {
-        auJwt: AnyUserJwt <- jwt.asAnyUser
-        payload <- req.req.as[CreateDocumentPayload]
-        _ <- if payload.nonEmpty then IO.unit else IO.raiseError(BadRequestException("Empty payload"))
-        _ <- auJwt.containsUserIds(payload.map(item => item.userID), userRepo)
-        obj <- storageObjectRepo.findById(auJwt.appId, objId).orNotFound
-        _ <- if auJwt match
-          case uJwt: UserJwt => obj.userId.contains(uJwt.userId)
-          case tuJwt: TempUserJwt => obj.tokenId.contains(tuJwt.tokenId)
-        then IO.unit else IO.raiseError(AuthException())
-        _ <- userRepo.findAllByIds(auJwt.appId, payload.map(_.userID)).ensureSize(payload.size)
-        _ <- documentRepo.findById(auJwt.appId, objId).thenBadRequest("Document already exists")
-        doc = Document(auJwt.appId, objId)
-        _ <- documentRepo.insert(doc)
-        _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
-        res <- Ok(doc.id)
-      } yield res
-
     // FR-BE10 Add User Document Keys
     case req @ PUT -> Root / "documents" / "keys" / "user" / userId as jwt =>
       for {
@@ -101,6 +81,26 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
         keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, docIds, uJwt.userId).ensureSize(docIds.size, AuthException())
         ret <- Ok(keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey)))
       } yield ret
+
+    // Create Document From StorageObject
+    case req @ POST -> Root / "documents" / objId as jwt =>
+      for {
+        auJwt: AnyUserJwt <- jwt.asAnyUser
+        payload <- req.req.as[CreateDocumentPayload]
+        _ <- if payload.nonEmpty then IO.unit else IO.raiseError(BadRequestException("Empty payload"))
+        _ <- auJwt.containsUserIds(payload.map(item => item.userID), userRepo)
+        obj <- storageObjectRepo.findById(auJwt.appId, objId).orNotFound
+        _ <- if auJwt match
+          case uJwt: UserJwt => obj.userId.contains(uJwt.userId)
+          case tuJwt: TempUserJwt => obj.tokenId.contains(tuJwt.tokenId)
+        then IO.unit else IO.raiseError(AuthException())
+        _ <- userRepo.findAllByIds(auJwt.appId, payload.map(_.userID)).ensureSize(payload.size)
+        _ <- documentRepo.findById(auJwt.appId, objId).thenBadRequest("Document already exists")
+        doc = Document(auJwt.appId, objId)
+        _ <- documentRepo.insert(doc)
+        _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
+        res <- Ok(doc.id)
+      } yield res
 
     // FR-BE11 Delete Document
     case req @ DELETE -> Root / "documents" / docId as jwt =>
