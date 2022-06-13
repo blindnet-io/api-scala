@@ -54,11 +54,11 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO],
         _ <- (payload.chunkSize <= 4194304).orBadRequest("Invalid chunk size")
         obj <- storageObjectRepo.findById(auJwt.appId, payload.dataId).orNotFound
         _ <- obj.isOwner(auJwt).orForbidden
-        blockId <- UUIDGen.randomString
-        _ <- storageBlockRepo.insert(StorageBlock(auJwt.appId, obj.id, blockId))
-        signed <- AzureStorage.signBlockUpload(obj.id, blockId, payload.chunkSize)
+        block <- UUIDGen.randomString.map(StorageBlock(auJwt.appId, obj.id, _))
+        _ <- storageBlockRepo.insert(block)
+        signed <- AzureStorage.signBlockUpload(obj.id, block.idB64, payload.chunkSize)
         res <- Ok(BlockUploadUrlResponse(
-          signed.authorization, signed.date, blockId, signed.url
+          signed.authorization, signed.date, block.idB64, signed.url
         ))
       } yield res
 
