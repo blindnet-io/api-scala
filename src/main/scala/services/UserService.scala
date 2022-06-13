@@ -169,5 +169,5 @@ object UserPublicKeysResponse {
 }
 
 sealed trait UsersPublicKeysPayload
-case class GIDUsersPublicKeysPayload(groupID: String) extends UsersPublicKeysPayload
-case class UIDUsersPublicKeysPayload(userIDs: List[String]) extends UsersPublicKeysPayload
+case class GIDUsersPublicKeysPayload(groupId: String) extends UsersPublicKeysPayload
+case class UIDUsersPublicKeysPayload(userIds: List[String]) extends UsersPublicKeysPayload
