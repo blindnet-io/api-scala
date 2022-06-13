@@ -25,7 +25,7 @@ import org.http4s.server.AuthMiddleware
 
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-import java.util.{Random, UUID}
+import java.util.{Base64, Random, UUID}
 import scala.util.Try
 
 class StorageService(storageObjectRepo: StorageObjectRepository[IO],
@@ -71,7 +71,7 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO],
         nel = NonEmptyList.fromListUnsafe(payload.blockIds.distinct)
         obj <- storageObjectRepo.findById(auJwt.appId, payload.dataId).orNotFound
         _ <- obj.isOwner(auJwt).orForbidden
-        _ <- storageBlockRepo.countByIds(auJwt.appId, obj.id, nel)
+        _ <- storageBlockRepo.countByIds(auJwt.appId, obj.id, nel.map(decodeB64))
           .map(_ == nel.size).flatMap(_.orBadRequest("Bad blockId"))
         _ <- AzureStorage.finishBlockBlob(obj.id, payload.blockIds)
         res <- Ok(true)
@@ -110,6 +110,8 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO],
         res <- Ok(obj.meta)
       } yield res
   }
+  
+  private def decodeB64(in: String): String = String(Base64.getDecoder.decode(in))
 }
 
 case class InitUploadResponse(
