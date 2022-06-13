@@ -23,6 +23,7 @@ lazy val root = (project in file("."))
       "io.circe"               %% "circe-core"                      % circeVersion,
       "io.circe"               %% "circe-generic"                   % circeVersion,
       "io.circe"               %% "circe-literal"                   % circeVersion % Test,
+      "io.netty"               %  "netty-transport-native-epoll"    % "4.1.77.Final",
       "org.apache.commons"     %  "commons-lang3"                   % "3.12.0" % Test,
       "org.bouncycastle"       %  "bcprov-jdk15on"                  % "1.70",
       "org.flywaydb"           %  "flyway-core"                     % "8.5.12",
