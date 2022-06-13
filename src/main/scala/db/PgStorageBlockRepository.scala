@@ -19,6 +19,6 @@ class PgStorageBlockRepository(xa: Transactor[IO]) extends StorageBlockRepositor
 
   override def insert(block: StorageBlock): IO[Unit] =
     sql"""insert into storage_blocks (app_id, object_id, id)
-          values (${block.appId}::uuid, ${block.objectId}::uuid, ${block.id})"""
+          values (${block.appId}::uuid, ${block.objectId}::uuid, ${block.id}::uuid)"""
       .update.run.transact(xa).void
 }
