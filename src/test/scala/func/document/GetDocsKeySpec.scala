@@ -18,7 +18,7 @@ import org.scalatest.Assertion
 class GetDocsKeySpec extends UserAuthEndpointSpec("documents/keys", Method.POST) {
   def payload(docIds: List[String]): Json =
     json"""{
-          "dataIDs": $docIds
+          "data_ids": $docIds
     }"""
 
   override def testValidRequest(): IO[Assertion] = {
