@@ -74,7 +74,7 @@ class StorageService(storageObjectRepo: StorageObjectRepository[IO],
         _ <- storageBlockRepo.countByIds(auJwt.appId, obj.id, nel)
           .map(_ == nel.size).flatMap(_.orBadRequest("Bad blockId"))
         _ <- AzureStorage.finishBlockBlob(obj.id, payload.blockIds)
-        res <- Ok()
+        res <- Ok(true)
       } yield res
 
     // Get File URL
