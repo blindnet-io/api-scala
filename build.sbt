@@ -45,5 +45,8 @@ lazy val root = (project in file("."))
       case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.discard
       case x => assemblyMergeStrategy.value(x)
-    }
+    },
+    assembly / packageOptions += Package.ManifestAttributes(
+      "Multi-Release" -> "true"
+    )
   )
