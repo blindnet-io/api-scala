@@ -18,9 +18,9 @@ abstract class Env() {
   val port: Int = sys.env.getOrElse("BN_PORT", "8087").toInt
   val host: String = sys.env.getOrElse("BN_HOST", "127.0.0.1")
 
-  val azureStorageAccountName: String = sys.env("BN_AZURE_STORAGE_ACC_NAME")
-  val azureStorageAccountKey: String = sys.env("BN_AZURE_STORAGE_ACC_KEY")
-  val azureStorageContainerName: String = sys.env("BN_AZURE_STORAGE_CONT_NAME")
+  lazy val azureStorageAccountName: String = sys.env("BN_AZURE_STORAGE_ACC_NAME")
+  lazy val azureStorageAccountKey: String = sys.env("BN_AZURE_STORAGE_ACC_KEY")
+  lazy val azureStorageContainerName: String = sys.env("BN_AZURE_STORAGE_CONT_NAME")
 }
 
 class ProductionEnv() extends StagingEnv {
@@ -44,4 +44,9 @@ class DevelopmentEnv() extends Env {
 
   override val sendErrorMessages: Boolean = true
   override val sendInternalErrorMessages: Boolean = true
+
+  // Fake values for testing purposes
+  override lazy val azureStorageAccountName: String = "account_name"
+  override lazy val azureStorageAccountKey: String = "lDiergZCKWA5MvfFQ3qkGWDnFU/Ri7DSNQNJhH7mnM7TOZR7+UUJ2aAuEp7oIdAbvhMvYtR4shWO+AStAwyfmA=="
+  override lazy val azureStorageContainerName: String = "container_name"
 }
