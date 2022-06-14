@@ -43,7 +43,7 @@ object AzureStorage {
 
     sign(List(
       "GET", "", "", "", "", "", "", "", "", "", "", "",
-      s"nx-ms-date:$date",
+      s"x-ms-date:$date",
       "x-ms-version:2021-04-10",
       s"/$accountName/$containerName/$blobId",
     )).map(signature => SignedBlobDownload(
