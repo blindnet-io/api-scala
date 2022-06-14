@@ -105,7 +105,7 @@ class GetSelfKeysSpec extends UserAuthEndpointSpec("keys/me", Method.GET) {
       _ <- testApp.insert(serverApp)
       res <- run(createAuthedRequest(token))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.BadRequest)(res.status)
     }
   }
 }

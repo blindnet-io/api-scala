@@ -112,7 +112,7 @@ class UpdatePrivateKeysSpec extends UserAuthEndpointSpec("keys/me", Method.PUT) 
       res <- run(createAuthedRequest(testApp.createUserToken(newUser))
         .withEntity(payload(newUser)))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.BadRequest)(res.status)
     }
   }
 }

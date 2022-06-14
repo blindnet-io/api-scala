@@ -85,7 +85,7 @@ class DeleteSelfUserSpec extends UserAuthEndpointSpec("users/me", Method.DELETE)
       _ <- testApp.insert(serverApp)
       res <- run(createAuthedRequest(testApp.createUserToken(testUser)))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.BadRequest)(res.status)
     }
   }
 }
