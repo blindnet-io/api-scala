@@ -41,5 +41,5 @@ object ErrorHandler {
 
 extension(m: Response[IO]) {
   def condEntity[T](cond: Boolean, entity: T)(implicit enc: EntityEncoder[IO, T]): Response[IO] =
-    if cond then m.withEntity(entity) else m
+    if cond && entity != null then m.withEntity(entity) else m
 }
