@@ -50,10 +50,10 @@ class MessageEndpoints(auth: JwtAuthenticator, service: MessageService) {
       .in("messages")
       .serverLogicSuccess(service.deleteAllUserMessages)
 
-  def routes: HttpRoutes[IO] = Http4sServerInterpreter[IO]().toRoutes(List(
+  val list: List[ServerEndpoint[Any, IO]] = List(
     sendMessage,
     getMessageIds,
     getMessageContent,
     deleteAllUserMessages,
-  ))
+  )
 }

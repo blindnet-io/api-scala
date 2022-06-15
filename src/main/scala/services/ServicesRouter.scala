@@ -21,6 +21,7 @@ import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.*
 import org.http4s.server.middleware.*
+import sttp.tapir.server.http4s.Http4sServerInterpreter
 
 class ServicesRouter(
     appRepo: AppRepository[IO],
@@ -40,19 +41,22 @@ class ServicesRouter(
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo, storageObjectRepo)
   private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
   private val storageService = StorageService(storageObjectRepo, storageBlockRepo, documentKeyRepo)
-  
-  private val messageEndpoints = MessageEndpoints(authenticator, messageService)
 
   private def unsafeRoutes =
     userService.authedRoutes
-    <+> signalUserService.authedRoutes
-    <+> documentService.authedRoutes
-    <+> storageService.authedRoutes
+      <+> signalUserService.authedRoutes
+      <+> documentService.authedRoutes
+      <+> storageService.authedRoutes
+
+  private val messageEndpoints = MessageEndpoints(authenticator, messageService)
+
+  private val allEndpoints = messageEndpoints.list
+  private val swaggerEndpoints = SwaggerEndpoints(allEndpoints).endpoints
 
   def routes: HttpRoutes[IO] =
     CORS.policy.withAllowOriginAll(
       ErrorHandler(
-        messageEndpoints.routes <+>
+        Http4sServerInterpreter[IO]().toRoutes(allEndpoints ++ swaggerEndpoints) <+>
         authenticator.authMiddleware(
           unsafeRoutes
         )
