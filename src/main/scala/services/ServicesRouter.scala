@@ -2,6 +2,7 @@ package io.blindnet.backend
 package services
 
 import auth.*
+import endpoints.*
 import errors.ErrorHandler
 import models.*
 
@@ -32,24 +33,26 @@ class ServicesRouter(
     messageRepo: MessageRepository[IO],
     storageObjectRepo: StorageObjectRepository[IO],
     storageBlockRepo: StorageBlockRepository[IO]) {
+  private val authenticator = JwtAuthenticator(appRepo, userRepo)
+
   private val userService = UserService(userRepo, userKeysRepo)
   private val signalUserService = SignalUserService(userRepo, deviceRepo, oneTimeKeyRepo)
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo, storageObjectRepo)
   private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
   private val storageService = StorageService(storageObjectRepo, storageBlockRepo, documentKeyRepo)
-
-  private val authenticator = JwtAuthenticator(appRepo, userRepo)
+  
+  private val messageEndpoints = MessageEndpoints(authenticator, messageService)
 
   private def unsafeRoutes =
     userService.authedRoutes
     <+> signalUserService.authedRoutes
     <+> documentService.authedRoutes
-    <+> messageService.authedRoutes
     <+> storageService.authedRoutes
 
   def routes: HttpRoutes[IO] =
     CORS.policy.withAllowOriginAll(
       ErrorHandler(
+        messageEndpoints.routes <+>
         authenticator.authMiddleware(
           unsafeRoutes
         )

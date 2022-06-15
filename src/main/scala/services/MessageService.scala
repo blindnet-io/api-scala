@@ -4,6 +4,7 @@ package services
 import auth.*
 import errors.*
 import models.*
+import objects.*
 
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.effect.*
@@ -25,104 +26,40 @@ import java.util.{Random, UUID}
 import scala.util.Try
 
 class MessageService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepository[IO], messageRepo: MessageRepository[IO]) {
-  def authedRoutes: AuthedRoutes[AuthJwt, IO] = AuthedRoutes.of[AuthJwt, IO] {
-    // FR-M01 Send Message
-    case req @ POST -> Root / "messages" as jwt =>
-      for {
-        uJwt: UserJwt <- jwt.asUser
-        payload <- req.req.as[SendMessagePayload]
+  def sendMessage(jwt: AuthJwt)(payload: SendMessagePayload): IO[String] =
+    for {
+      uJwt: UserJwt <- jwt.asUser
 
-        recipient <- deviceRepo.findById(uJwt.appId, payload.recipientID, payload.recipientDeviceID).orNotFound
-        sender <- deviceRepo.findById(uJwt.appId, uJwt.userId, payload.senderDeviceID).orNotFound
+      recipient <- deviceRepo.findById(uJwt.appId, payload.recipientID, payload.recipientDeviceID).orNotFound
+      sender <- deviceRepo.findById(uJwt.appId, uJwt.userId, payload.senderDeviceID).orNotFound
 
-        timeSent <- Try(Instant.parse(payload.timestamp)).orBadRequest("Bad timestamp")
-        msg = models.Message(
-          Random().nextLong(), uJwt.appId,
-          sender.userId, sender.id,
-          recipient.userId, recipient.id,
-          payload.message, payload.dhKey,
-          payload.senderKeys.publicIk, payload.senderKeys.publicEk,
-          timeSent
-        )
-        _ <- messageRepo.insert(msg)
-        res <- Ok(msg.id.toString)
-      } yield res
+      timeSent <- Try(Instant.parse(payload.timestamp)).orBadRequest("Bad timestamp")
+      msg = models.Message(
+        Random().nextLong(), uJwt.appId,
+        sender.userId, sender.id,
+        recipient.userId, recipient.id,
+        payload.message, payload.dhKey,
+        payload.senderKeys.publicIk, payload.senderKeys.publicEk,
+        timeSent
+      )
+      _ <- messageRepo.insert(msg)
+    } yield msg.id.toString
 
-    // FR-M03 Get Message IDs
-    case req @ GET -> Root / "messages" as jwt =>
-      for {
-        uJwt: UserJwt <- jwt.asUser
-        deviceId <- req.req.params.get("deviceID").orBadRequest("Missing deviceID")
-        res <- Ok(messageRepo.findAllIdsByRecipient(uJwt.appId, uJwt.userId, deviceId))
-      } yield res
+  def getMessageIds(jwt: AuthJwt)(deviceId: String): IO[List[Long]] =
+    for {
+      uJwt: UserJwt <- jwt.asUser
+      ids <- messageRepo.findAllIdsByRecipient(uJwt.appId, uJwt.userId, deviceId)
+    } yield ids
 
-    // FR-M04 Get Message Content
-    case req @ GET -> Root / "messages" / "content" as jwt =>
-      for {
-        uJwt: UserJwt <- jwt.asUser
-        deviceId <- req.req.params.get("deviceID").orBadRequest("Missing deviceID")
-        messageIds <- req.req.multiParams.get("messageIDs").orBadRequest("Missing messageIDs")
-        messages <- messageRepo.findAllByRecipientAndIds(uJwt.appId, uJwt.userId, deviceId, messageIds.toList)
-        res <- Ok(messages.map(MessageResponse.apply))
-      } yield res
+  def getMessageContent(jwt: AuthJwt)(deviceId: String, messageIds: List[String]): IO[List[MessageResponse]] =
+    for {
+      uJwt: UserJwt <- jwt.asUser
+      messages <- messageRepo.findAllByRecipientAndIds(uJwt.appId, uJwt.userId, deviceId, messageIds)
+    } yield messages.map(MessageResponse.apply)
 
-    // FR-M07 Delete All User Messages
-    case req @ DELETE -> Root / "messages" as jwt =>
-      for {
-        uJwt: UserJwt <- jwt.asUser
-        _ <- messageRepo.deleteAllByUser(uJwt.appId, uJwt.userId)
-        res <- Ok()
-      } yield res
-  }
-}
-
-case class SendMessagePayload(
-  recipientID: String,
-  recipientDeviceID: String,
-  senderDeviceID: String,
-  message: String,
-  dhKey: String,
-  senderKeys: SenderKeys,
-  timestamp: String,
-)
-
-case class SenderKeys(
-  publicIk: String,
-  publicEk: String,
-)
-
-case class MessageResponse(
-  id: String,
-  senderID: String,
-  recipientID: String,
-  senderDeviceID: String,
-  recipientDeviceID: String,
-  messageContent: String,
-  dhKey: String,
-  timeSent: String,
-  timeDelivered: Option[String],
-  timeRead: Option[String],
-  messageSenderKeys: MessageSenderKeys,
-)
-object MessageResponse {
-  def apply(message: models.Message): MessageResponse = new MessageResponse(
-    message.id.toString,
-    message.senderId, message.recipientId,
-    message.senderDeviceId, message.recipientDeviceId,
-    message.data, message.dhKey,
-    message.timeSent.toString, message.timeDelivered.map(_.toString), message.timeRead.map(_.toString),
-    MessageSenderKeys(message)
-  )
-}
-
-case class MessageSenderKeys(
-  publicIk: String,
-  publicEk: String,
-  messageID: String,
-)
-object MessageSenderKeys {
-  def apply(message: models.Message): MessageSenderKeys = new MessageSenderKeys(
-    message.publicIk, message.publicEk,
-    message.id.toString
-  )
+  def deleteAllUserMessages(jwt: AuthJwt)(x: Unit): IO[Unit] =
+    for {
+      uJwt: UserJwt <- jwt.asUser
+      _ <- messageRepo.deleteAllByUser(uJwt.appId, uJwt.userId)
+    } yield ()
 }
