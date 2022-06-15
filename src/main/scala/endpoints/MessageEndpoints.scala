@@ -15,27 +15,26 @@ import sttp.tapir.server.*
 import sttp.tapir.server.http4s.*
 
 class MessageEndpoints(auth: JwtAuthenticator, service: MessageService) {
-  // FR-M01
+  private val base = auth.secureEndpoint.tag("Messages")
+
   val sendMessage: ServerEndpoint[Any, IO] =
-    auth.secureEndpoint
+    base.summary("Send Message (FR-M01)")
       .post
       .in("messages")
       .in(jsonBody[SendMessagePayload])
       .out(stringBody)
       .serverLogicSuccess(service.sendMessage)
 
-  // FR-M03
   val getMessageIds: ServerEndpoint[Any, IO] =
-    auth.secureEndpoint
+    base.summary("Get Message IDs (FR-M03)")
       .get
       .in("messages")
       .in(query[String]("deviceID"))
       .out(jsonBody[List[Long]])
       .serverLogicSuccess(service.getMessageIds)
 
-  // FR-M04
   val getMessageContent: ServerEndpoint[Any, IO] =
-    auth.secureEndpoint
+    base.summary("Get Message Content (FR-M04)")
       .get
       .in("messages" / "content")
       .in(query[String]("deviceID"))
@@ -43,9 +42,8 @@ class MessageEndpoints(auth: JwtAuthenticator, service: MessageService) {
       .out(jsonBody[List[MessageResponse]])
       .serverLogicSuccess(service.getMessageContent)
 
-  // FR-M07
   val deleteAllUserMessages: ServerEndpoint[Any, IO] =
-    auth.secureEndpoint
+    base.summary("Delete All User Messages (FR-M07)")
       .delete
       .in("messages")
       .serverLogicSuccess(service.deleteAllUserMessages)
