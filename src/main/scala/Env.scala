@@ -23,26 +23,26 @@ abstract class Env() {
   lazy val azureStorageContainerName: String = sys.env("BN_AZURE_STORAGE_CONT_NAME")
 }
 
-class ProductionEnv() extends StagingEnv {
+class ProductionEnv() extends Env {
   override val name: String = "production"
-
-  override val sendErrorMessages: Boolean = false
-}
-
-class StagingEnv() extends DevelopmentEnv {
-  override val name: String = "staging"
 
   override val migrate: Boolean = sys.env.get("BN_MIGRATE").contains("yes")
 
+  override val sendErrorMessages: Boolean = false
   override val sendInternalErrorMessages: Boolean = false
 }
 
-class DevelopmentEnv() extends Env {
+class StagingEnv() extends ProductionEnv {
+  override val name: String = "staging"
+
+  override val sendErrorMessages: Boolean = true
+}
+
+class DevelopmentEnv() extends StagingEnv {
   override val name: String = "development"
 
   override val migrate: Boolean = sys.env.get("BN_MIGRATE").forall(_ == "yes")
 
-  override val sendErrorMessages: Boolean = true
   override val sendInternalErrorMessages: Boolean = true
 
   // Fake values for testing purposes
