@@ -49,6 +49,7 @@ lazy val root = (project in file("."))
     assembly / assemblyMergeStrategy := {
       case PathList(ps @ _*) if ps.last == "module-info.class" => MergeStrategy.discard
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.discard
+      case PathList("META-INF", "maven", "org.webjars", "swagger-ui", "pom.properties") => MergeStrategy.singleOrError
       case x => assemblyMergeStrategy.value(x)
     },
     assembly / packageOptions += Package.ManifestAttributes(
