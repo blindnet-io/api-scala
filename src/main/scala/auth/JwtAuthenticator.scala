@@ -11,6 +11,8 @@ import org.http4s.*
 import org.http4s.server.*
 import pdi.jwt.*
 import pdi.jwt.algorithms.*
+import sttp.tapir.*
+import sttp.tapir.server.PartialServerEndpoint
 
 import java.nio.charset.StandardCharsets
 import java.security.{PublicKey, Signature}
@@ -22,6 +24,15 @@ class JwtAuthenticator(appRepo: AppRepository[IO], userRepo: UserRepository[IO])
     AuthJwtUtils.getRawToken(req).flatMap(processToken)
   }
   val authMiddleware: AuthMiddleware[IO, AuthJwt] = AuthMiddleware(authenticate, Kleisli(req => OptionT.liftF(IO.raiseError(AuthException(req.context.asInstanceOf[String])))))
+
+  val secureEndpoint: PartialServerEndpoint[String, AuthJwt, Unit, String, Unit, Any, IO] =
+    endpoint
+      .securityIn(header[String]("Authorization"))
+      .errorOut(plainBody[String])
+      .serverSecurityLogic(h => AuthJwtUtils.extractTokenFromHeader(h) match
+        case Left(error) => IO.pure(Left(error))
+        case Right(token) => processToken(token)
+      )
 
   def processToken(token: String): IO[Either[String, AuthJwt]] =
     def getAppKey(claim: JwtClaim): IO[Either[String, PublicKey]] =
