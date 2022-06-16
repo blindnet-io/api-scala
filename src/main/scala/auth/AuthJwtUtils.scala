@@ -28,11 +28,6 @@ object AuthJwtUtils {
         }
       case None => IO.raiseError(AuthException("Missing or invalid authorization header"))
     }
-  
-  def extractTokenFromHeader(header: String): Either[String, String] =
-    if header.startsWith("Bearer ")
-    then Right(header.substring(7))
-    else Left("Invalid authorization header")
 
   def verifySignatureWithKey(data: Array[Byte], signature: String, key: String): IO[Unit] =
     decodeBase64(signature).flatMap { signatureBytes =>

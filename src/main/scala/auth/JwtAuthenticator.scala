@@ -27,12 +27,9 @@ class JwtAuthenticator(appRepo: AppRepository[IO], userRepo: UserRepository[IO])
 
   val secureEndpoint: PartialServerEndpoint[String, AuthJwt, Unit, String, Unit, Any, IO] =
     endpoint
-      .securityIn(header[String]("Authorization"))
+      .securityIn(auth.bearer[String]())
       .errorOut(plainBody[String])
-      .serverSecurityLogic(h => AuthJwtUtils.extractTokenFromHeader(h) match
-        case Left(error) => IO.pure(Left(error))
-        case Right(token) => processToken(token)
-      )
+      .serverSecurityLogic(processToken)
 
   def processToken(token: String): IO[Either[String, AuthJwt]] =
     def getAppKey(claim: JwtClaim): IO[Either[String, PublicKey]] =
