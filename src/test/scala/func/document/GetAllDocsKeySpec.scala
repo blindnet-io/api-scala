@@ -98,7 +98,7 @@ class GetAllDocsKeySpec extends UserAuthEndpointSpec("documents/keys", Method.GE
       _ <- aesKeys.traverse(key => run(CreateDocSpec().createCompleteRequest(List(testUser), key, testApp.createTempUserToken(List(testUser.id)))))
       res <- run(createRequest())
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 }

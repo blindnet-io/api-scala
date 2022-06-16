@@ -104,7 +104,7 @@ class DeleteDocUserSpec extends ClientAuthEndpointSpec("documents/user/%s", Meth
       _ <- run(CreateDocSpec().createCompleteRequest(List(testUser), aesKey, token))
       res <- run(createRequest(testUser.id))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 }

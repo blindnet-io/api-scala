@@ -78,7 +78,7 @@ class CreateDocSpec extends AnyUserAuthEndpointSpec("documents", Method.POST) {
       _ <- testApp.insert(serverApp)
       res <- run(createRequest().withEntity(payload(testUsers, aesKey)))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 

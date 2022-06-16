@@ -64,7 +64,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       uJwt: UserJwt <- jwt.asUser
       docIds = payload.data_ids.distinct
       docs <- documentRepo.findAllByIds(uJwt.appId, docIds).ensureSize(docIds.size)
-      keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, docIds, uJwt.userId).ensureSize(docIds.size, AuthException())
+      keys <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, docIds, uJwt.userId).ensureSize(docIds.size, ForbiddenException())
     } yield keys.map(key => GetAllDocsAndKeysResponseItem(key.documentId, key.encSymmetricKey))
 
   def createDocumentFromStorage(jwt: AuthJwt)(objId: String, payload: CreateDocumentPayload): IO[String] =
@@ -76,7 +76,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       _ <- if auJwt match
         case uJwt: UserJwt => obj.userId.contains(uJwt.userId)
         case tuJwt: TempUserJwt => obj.tokenId.contains(tuJwt.tokenId)
-      then IO.unit else IO.raiseError(AuthException())
+      then IO.unit else IO.raiseError(ForbiddenException())
       _ <- userRepo.findAllByIds(auJwt.appId, payload.map(_.userID)).ensureSize(payload.size)
       _ <- documentRepo.findById(auJwt.appId, objId).thenBadRequest("Document already exists")
       doc = Document(auJwt.appId, objId)

@@ -116,7 +116,7 @@ class DeleteDocKeySpec extends ClientAuthEndpointSpec("documents/%s/keys/%s", Me
       docId <- docRes.as[Json].map(_.asString.get)
       res <- run(createRequest(docId, testUser.id))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 

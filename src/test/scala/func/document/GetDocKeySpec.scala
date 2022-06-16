@@ -96,7 +96,7 @@ class GetDocKeySpec extends UserAuthEndpointSpec("documents/keys/%s", Method.GET
       docBody <- docRes.as[Json]
       res <- run(createRequest(docBody.asString.get))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 }

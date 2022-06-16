@@ -103,7 +103,7 @@ class DeleteDocSpec extends ClientAuthEndpointSpec("documents/%s", Method.DELETE
       docId <- docRes.as[Json].map(_.asString.get)
       res <- run(createRequest(docId))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 

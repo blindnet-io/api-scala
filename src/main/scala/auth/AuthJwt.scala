@@ -18,7 +18,7 @@ sealed trait AuthJwt {
 
   private def as[T <: AuthJwt](cl: Class[T]): IO[T] = asNoCheck(cl).flatMap(t => t.check().as(t))
   private def asNoCheck[T](cl: Class[T]): IO[T] =
-    if cl.isInstance(this) then IO.pure(asInstanceOf[T]) else IO.raiseError(AuthException("Wrong JWT type"))
+    if cl.isInstance(this) then IO.pure(asInstanceOf[T]) else IO.raiseError(ForbiddenException("Wrong JWT type"))
 
   protected def check(): IO[Unit] = IO.unit
 }
@@ -37,9 +37,9 @@ sealed trait AnyUserJwt extends AuthJwt {
       if tuJwt.userIds.containsSlice(userIds) then IO.unit
       else tuJwt.groupId match {
         case Some(groupId) => userRepo.countByIdsOutsideGroup(tuJwt.appId, groupId, userIds).flatMap {
-          wrongUsers => if wrongUsers == 0 then IO.unit else IO.raiseError(AuthException("Temporary token lacks permission for some users"))
+          wrongUsers => if wrongUsers == 0 then IO.unit else IO.raiseError(ForbiddenException("Temporary token lacks permission for some users"))
         }
-        case None => IO.raiseError(AuthException("Temporary token lacks permission for some users"))
+        case None => IO.raiseError(ForbiddenException("Temporary token lacks permission for some users"))
       }
   }
   

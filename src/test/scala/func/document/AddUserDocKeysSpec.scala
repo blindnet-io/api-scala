@@ -135,7 +135,7 @@ class AddUserDocKeysSpec extends UserAuthEndpointSpec("documents/keys/user/%s", 
       docBody <- docRes.as[Json]
       res <- run(createRequest(testUser2.id).withEntity(payload(docBody.asString.get, testUser2, aesKey)))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 

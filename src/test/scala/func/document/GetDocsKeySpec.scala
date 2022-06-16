@@ -98,7 +98,10 @@ class GetDocsKeySpec extends UserAuthEndpointSpec("documents/keys", Method.POST)
       docsRes <- aesKeys.traverse(key => run(CreateDocSpec().createCompleteRequest(List(testUser), key, testApp.createTempUserToken(List(testUser.id)))))
       docsBodies: List[Json] <- docsRes.traverse(_.as[Json])
       res <- run(createAuthedRequest(testApp.createClientToken()).withEntity(payload(docsBodies.map(_.asString.get))))
+      body <- res.as[String]
     } yield {
+      println(res.status)
+      println(body)
       assertResult(Status.Forbidden)(res.status)
     }
   }
@@ -117,7 +120,7 @@ class GetDocsKeySpec extends UserAuthEndpointSpec("documents/keys", Method.POST)
       docsBodies: List[Json] <- docsRes.traverse(_.as[Json])
       res <- run(createRequest().withEntity(payload(docsBodies.map(_.asString.get))))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 }

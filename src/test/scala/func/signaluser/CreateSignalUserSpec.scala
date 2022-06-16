@@ -92,7 +92,7 @@ class CreateSignalUserSpec extends UserAuthEndpointSpec("signal/users", Method.P
       _ <- testApp.insert(serverApp)
       res <- run(createRequest().withEntity(payload(testApp, testDevice, token)))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 
@@ -150,7 +150,7 @@ class CreateSignalUserSpec extends UserAuthEndpointSpec("signal/users", Method.P
       _ <- testApp.insert(serverApp)
       res <- run(createAuthedRequest(token).withEntity(badPayload))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 
@@ -166,7 +166,7 @@ class CreateSignalUserSpec extends UserAuthEndpointSpec("signal/users", Method.P
       _ <- testApp.insert(serverApp)
       res <- run(createAuthedRequest(token).withEntity(badPayload))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 

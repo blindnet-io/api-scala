@@ -48,7 +48,7 @@ class GetUserPublicKeysSpec extends UserAuthEndpointSpec("keys/%s", Method.GET) 
       _ <- testUser.insert(serverApp, testApp)
       res <- run(createRequest(testUser.id))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 

@@ -80,7 +80,7 @@ class DeleteUserSpec extends ClientAuthEndpointSpec("users/%s", Method.DELETE) {
       _ <- testUser.insert(serverApp, testApp)
       res <- run(createRequest(testUser.id))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 

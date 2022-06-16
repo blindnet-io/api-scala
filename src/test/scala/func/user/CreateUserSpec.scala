@@ -67,7 +67,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
       _ <- testApp.insert(serverApp)
       res <- run(createRequest().withEntity(payload(testApp, testUser, token)))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 
@@ -137,7 +137,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
       res <- run(createAuthedRequest(token).withEntity(badPayload.asJson))
       body <- res.as[String]
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 
@@ -153,7 +153,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
       res <- run(createAuthedRequest(token).withEntity(badPayload.asJson))
       body <- res.as[String]
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 }

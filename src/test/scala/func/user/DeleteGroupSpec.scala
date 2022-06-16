@@ -81,7 +81,7 @@ class DeleteGroupSpec extends ClientAuthEndpointSpec("group/%s", Method.DELETE) 
       _ <- testApp.insert(serverApp)
       res <- run(createRequest("test_group"))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 }

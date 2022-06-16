@@ -10,6 +10,7 @@ import scala.util.{Failure, Success, Try}
 abstract class AppException(message: String = null, cause: Throwable = null) extends Exception(message, cause)
 
 class BadRequestException(message: String) extends AppException(message)
+class ForbiddenException(message: String = null) extends AppException(message)
 class NotFoundException(message: String = null) extends AppException(message)
 
 extension[T](o: Option[T]) {
@@ -53,5 +54,5 @@ extension(b: Boolean) {
   def orRaise(t: => Throwable): IO[Unit] = if b then IO.unit else IO.raiseError(t)
     
   def orBadRequest(message: => String): IO[Unit] = orRaise(BadRequestException(message))
-  def orForbidden: IO[Unit] = orRaise(AuthException())
+  def orForbidden: IO[Unit] = orRaise(ForbiddenException())
 }

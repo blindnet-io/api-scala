@@ -113,7 +113,7 @@ class CreateMessageSpec extends UserAuthEndpointSpec("messages", Method.POST) {
       _ <- recipient.insert(serverApp, testApp)
       res <- run(createRequest().withEntity(payload(recipient.id, "test message", timeSent.toString)))
     } yield {
-      assertResult(Status.Forbidden)(res.status)
+      assertResult(Status.Unauthorized)(res.status)
     }
   }
 }

@@ -24,6 +24,10 @@ object ErrorHandler {
 
     case e: AuthException => for {
       _ <- logger.debug(e)("Authentication exception")
+    } yield Response(Status.Unauthorized).condEntity(Env.get.sendErrorMessages, e.getMessage)
+
+    case e: ForbiddenException => for {
+      _ <- logger.debug(e)("Forbidden exception")
     } yield Response(Status.Forbidden).condEntity(Env.get.sendErrorMessages, e.getMessage)
 
     case e: NotFoundException => for {
