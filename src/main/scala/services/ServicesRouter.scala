@@ -45,12 +45,12 @@ class ServicesRouter(
   private def unsafeRoutes =
     userService.authedRoutes
       <+> signalUserService.authedRoutes
-      <+> documentService.authedRoutes
       <+> storageService.authedRoutes
 
+  private val documentEndpoints = DocumentEndpoints(authenticator, documentService)
   private val messageEndpoints = MessageEndpoints(authenticator, messageService)
 
-  private val allEndpoints = messageEndpoints.list
+  private val allEndpoints = documentEndpoints.list ++ messageEndpoints.list
   private val swaggerEndpoints = SwaggerEndpoints(allEndpoints).endpoints
 
   def routes: HttpRoutes[IO] =
