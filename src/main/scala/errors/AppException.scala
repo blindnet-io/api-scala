@@ -55,4 +55,5 @@ extension(b: Boolean) {
     
   def orBadRequest(message: => String): IO[Unit] = orRaise(BadRequestException(message))
   def orForbidden: IO[Unit] = orRaise(ForbiddenException())
+  def orNotFound: IO[Unit] = orRaise(NotFoundException())
 }

@@ -42,13 +42,19 @@ class ServicesRouter(
   private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
   private val storageService = StorageService(storageObjectRepo, storageBlockRepo, documentKeyRepo)
 
-  private def unsafeRoutes = signalUserService.authedRoutes <+> storageService.authedRoutes
+  private def unsafeRoutes = storageService.authedRoutes
 
   private val userEndpoints = UserEndpoints(authenticator, userService)
+  private val signalUserEndpoints = SignalUserEndpoints(authenticator, signalUserService)
   private val documentEndpoints = DocumentEndpoints(authenticator, documentService)
   private val messageEndpoints = MessageEndpoints(authenticator, messageService)
 
-  private val allEndpoints = userEndpoints.list ++ documentEndpoints.list ++ messageEndpoints.list
+  private val allEndpoints = List(
+    userEndpoints.list,
+    signalUserEndpoints.list,
+    documentEndpoints.list,
+    messageEndpoints.list,
+  ).flatten
   private val swaggerEndpoints = SwaggerEndpoints(allEndpoints).endpoints
 
   private val http4sOptions: Http4sServerOptions[IO] = Http4sServerOptions
