@@ -17,18 +17,6 @@ import java.util.Base64
 import scala.util.{Failure, Success, Try}
 
 object AuthJwtUtils {
-  def getRawToken(req: Request[IO]): IO[String] =
-    req.headers.get[Authorization] match {
-      case Some(header) =>
-        header.credentials match {
-          case Credentials.Token(authScheme, token) =>
-            if authScheme.equals(ci"Bearer") then IO.pure(token)
-            else IO.raiseError(AuthException("Invalid authorization header"))
-          case _ => IO.raiseError(AuthException("Invalid authorization header"))
-        }
-      case None => IO.raiseError(AuthException("Missing or invalid authorization header"))
-    }
-
   def verifySignatureWithKey(data: Array[Byte], signature: String, key: String): IO[Unit] =
     decodeBase64(signature).flatMap { signatureBytes =>
       parseKey(key) match {

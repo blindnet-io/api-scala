@@ -20,44 +20,6 @@ class JwtUtilsSpec extends UnitSpec {
     }
   }
 
-  describe("getRawToken") {
-    def makeRequest(header: Option[String] = None) =
-      Request[IO](headers = header match {
-        case Some(value) => Headers(("Authorization", value))
-        case None => Headers.empty
-      })
-
-    it("should get a token from a valid request header") {
-      AuthJwtUtils.getRawToken(makeRequest(Some("Bearer token")))
-        .asserting(_ shouldBe "token")
-    }
-
-    it("should fail on a header with wrong type") {
-      AuthJwtUtils.getRawToken(makeRequest(Some("Token token")))
-        .assertThrows[AuthException]
-    }
-
-    it("should fail on a header with missing type") {
-      AuthJwtUtils.getRawToken(makeRequest(Some("token")))
-        .assertThrows[AuthException]
-    }
-
-    it("should fail on a header with bad format") {
-      AuthJwtUtils.getRawToken(makeRequest(Some("Bearer token extra")))
-        .assertThrows[AuthException]
-    }
-
-    it("should fail on an empty header") {
-      AuthJwtUtils.getRawToken(makeRequest(Some("")))
-        .assertThrows[AuthException]
-    }
-
-    it("should fail on an missing header") {
-      AuthJwtUtils.getRawToken(makeRequest())
-        .assertThrows[AuthException]
-    }
-  }
-
   describe("parseKey") {
     it("should parse an Ed25519 public key") {
       val key = AuthJwtUtils.parseKey("xkfc30tagz6SXGjPj3L2tnZOXavCvhKKoV7h4s/jIGw=")

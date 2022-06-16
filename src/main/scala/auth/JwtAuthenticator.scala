@@ -20,11 +20,6 @@ import java.util.Base64
 import scala.util.{Failure, Success, Try}
 
 class JwtAuthenticator(appRepo: AppRepository[IO], userRepo: UserRepository[IO]) {
-  private val authenticate: Kleisli[IO, Request[IO], Either[String, AuthJwt]] = Kleisli { (req: Request[IO]) =>
-    AuthJwtUtils.getRawToken(req).flatMap(processToken)
-  }
-  val authMiddleware: AuthMiddleware[IO, AuthJwt] = AuthMiddleware(authenticate, Kleisli(req => OptionT.liftF(IO.raiseError(AuthException(req.context.asInstanceOf[String])))))
-
   val secureEndpoint: PartialServerEndpoint[String, AuthJwt, Unit, String, Unit, Any, IO] =
     endpoint
       .securityIn(auth.bearer[String]())
