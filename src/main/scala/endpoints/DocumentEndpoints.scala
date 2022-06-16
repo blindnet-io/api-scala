@@ -49,7 +49,7 @@ class DocumentEndpoints(auth: JwtAuthenticator, service: DocumentService) {
 
   val getDocumentsAndKeys: ServerEndpoint[Any, IO] =
     base.summary("Get Documents And Keys (FR-BE17)")
-      .get
+      .post
       .in("documents" / "keys")
       .in(jsonBody[GetDocsAndKeysPayload])
       .out(jsonBody[List[GetAllDocsAndKeysResponseItem]])
