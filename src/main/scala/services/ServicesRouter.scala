@@ -9,6 +9,7 @@ import models.*
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import cats.implicits.*
+import com.azure.storage.common.implementation.connectionstring.StorageEndpoint
 import io.circe.*
 import io.circe.generic.auto.*
 import io.circe.syntax.*
@@ -34,25 +35,25 @@ class ServicesRouter(
     messageRepo: MessageRepository[IO],
     storageObjectRepo: StorageObjectRepository[IO],
     storageBlockRepo: StorageBlockRepository[IO]) {
-  private val authenticator = JwtAuthenticator(appRepo, userRepo)
-
   private val userService = UserService(userRepo, userKeysRepo)
   private val signalUserService = SignalUserService(userRepo, deviceRepo, oneTimeKeyRepo)
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo, storageObjectRepo)
-  private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
   private val storageService = StorageService(storageObjectRepo, storageBlockRepo, documentKeyRepo)
+  private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
 
-  private def unsafeRoutes = storageService.authedRoutes
+  private val authenticator = JwtAuthenticator(appRepo, userRepo)
 
   private val userEndpoints = UserEndpoints(authenticator, userService)
   private val signalUserEndpoints = SignalUserEndpoints(authenticator, signalUserService)
   private val documentEndpoints = DocumentEndpoints(authenticator, documentService)
+  private val storageEndpoints = StorageEndpoints(authenticator, storageService)
   private val messageEndpoints = MessageEndpoints(authenticator, messageService)
 
   private val allEndpoints = List(
     userEndpoints.list,
     signalUserEndpoints.list,
     documentEndpoints.list,
+    storageEndpoints.list,
     messageEndpoints.list,
   ).flatten
   private val swaggerEndpoints = SwaggerEndpoints(allEndpoints).endpoints
@@ -62,13 +63,10 @@ class ServicesRouter(
     .exceptionHandler(None)
     .options
 
-  def routes: HttpRoutes[IO] =
+  val routes: HttpRoutes[IO] =
     CORS.policy.withAllowOriginAll(
       ErrorHandler(
-        Http4sServerInterpreter[IO](http4sOptions).toRoutes(allEndpoints ++ swaggerEndpoints) <+>
-        authenticator.authMiddleware(
-          unsafeRoutes
-        )
+        Http4sServerInterpreter[IO](http4sOptions).toRoutes(allEndpoints ++ swaggerEndpoints)
       )
     )
 }
