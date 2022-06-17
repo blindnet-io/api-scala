@@ -58,11 +58,19 @@ class MessageEndpoints(auth: JwtAuthenticator, service: MessageService) {
       .in(streamBinaryBody(Fs2Streams[IO])(CodecFormat.OctetStream()))
       .serverLogicSuccess(service.saveBackup)
 
+  val getBackup: ApiEndpoint =
+    base.summary("Get Backup (FR-M11)")
+      .get
+      .in("messages" / "backup")
+      .out(streamBinaryBody(Fs2Streams[IO])(CodecFormat.OctetStream()))
+      .serverLogicSuccess(service.getBackup)
+
   val list: List[ApiEndpoint] = List(
     sendMessage,
     getMessageIds,
     getMessageContent,
     deleteAllUserMessages,
     saveBackup,
+    getBackup,
   )
 }

@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.azure.storage.blob.BlobClientBuilder
 import com.azure.storage.blob.models.AppendBlobRequestConditions
-import com.azure.storage.blob.specialized.BlobOutputStream
+import com.azure.storage.blob.specialized.{BlobInputStream, BlobOutputStream}
 import com.azure.storage.common.StorageSharedKeyCredential
 import fs2.*
 import fs2.io.*
@@ -33,6 +33,9 @@ object AzureStorage {
 
   private def getBlobOutputStream(blobId: String): IO[BlobOutputStream] =
     IO(buildBlobClient(blobId).getAppendBlobClient.getBlobOutputStream)
+
+  private def getBlobInputStream(blobId: String): IO[BlobInputStream] =
+    IO(buildBlobClient(blobId).openInputStream())
 
   def signBlockUpload(blobId: String, blockId: String, blockSize: Int): IO[SignedBlockUpload] =
     val date = mkDate()
@@ -66,8 +69,11 @@ object AzureStorage {
   def finishBlockBlob(blobId: String, blockIds: List[String]): IO[Unit] =
     IO(buildBlobClient(blobId).getBlockBlobClient.commitBlockList(blockIds.asJava))
 
-  def getUploadPipe(blobId: String): Pipe[IO, Byte, INothing] =
+  def upload(blobId: String): Pipe[IO, Byte, INothing] =
     writeOutputStream(getBlobOutputStream(blobId))
+
+  def download(blobId: String): Stream[IO, Byte] =
+    readInputStream(getBlobInputStream(blobId), 1000)
 }
 
 case class SignedBlockUpload(date: String, url: String, authorization: String)

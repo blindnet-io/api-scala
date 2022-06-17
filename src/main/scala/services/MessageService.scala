@@ -14,14 +14,15 @@ import cats.implicits.*
 import io.circe.*
 import io.circe.generic.auto.*
 import io.circe.syntax.*
+import fs2.*
 import org.http4s.*
 import org.http4s.circe.*
 import org.http4s.circe.CirceEntityCodec.*
-import org.http4s.syntax.*
 import org.http4s.dsl.*
 import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.server.AuthMiddleware
+import org.http4s.syntax.*
 
 import java.time.Instant
 import java.util.{Random, UUID}
@@ -67,7 +68,7 @@ class MessageService(deviceRepo: UserDeviceRepository[IO], messageRepo: MessageR
       _ <- messageRepo.deleteAllByUser(uJwt.appId, uJwt.userId)
     } yield ()
 
-  def saveBackup(jwt: AuthJwt)(newBackup: Boolean, saltOpt: Option[String], stream: fs2.Stream[IO, Byte]): IO[Unit] =
+  def saveBackup(jwt: AuthJwt)(newBackup: Boolean, saltOpt: Option[String], stream: Stream[IO, Byte]): IO[Unit] =
     for {
       uJwt: UserJwt <- jwt.asUser
       _ <- if newBackup
@@ -76,12 +77,18 @@ class MessageService(deviceRepo: UserDeviceRepository[IO], messageRepo: MessageR
         _ <- backupRepo.deleteByUserId(uJwt.appId, uJwt.userId)
         backup <- UUIDGen.randomString.map(MessageBackup(uJwt.appId, uJwt.userId, _, salt))
         _ <- backupRepo.insert(backup)
-        _ <- stream.through(AzureStorage.getUploadPipe(backup.blobId)).compile.drain
+        _ <- stream.through(AzureStorage.upload(backup.blobId)).compile.drain
       } yield ()
       else for {
         _ <- saltOpt.thenBadRequest("salt not supported when newBackup=false")
         backup <- backupRepo.findByUserId(uJwt.appId, uJwt.userId).orNotFound
-        _ <- stream.through(AzureStorage.getUploadPipe(backup.blobId)).compile.drain
+        _ <- stream.through(AzureStorage.upload(backup.blobId)).compile.drain
       } yield ()
     } yield ()
+
+  def getBackup(jwt: AuthJwt)(x: Unit): IO[Stream[IO, Byte]] =
+    for {
+      uJwt: UserJwt <- jwt.asUser
+      backup <- backupRepo.findByUserId(uJwt.appId, uJwt.userId).orNotFound
+    } yield AzureStorage.download(backup.blobId)
 }
