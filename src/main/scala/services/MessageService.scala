@@ -91,4 +91,10 @@ class MessageService(deviceRepo: UserDeviceRepository[IO], messageRepo: MessageR
       uJwt: UserJwt <- jwt.asUser
       backup <- backupRepo.findByUserId(uJwt.appId, uJwt.userId).orNotFound
     } yield AzureStorage.download(backup.blobId)
+
+  def getBackupSalt(jwt: AuthJwt)(x: Unit): IO[String] =
+    for {
+      uJwt: UserJwt <- jwt.asUser
+      backup <- backupRepo.findByUserId(uJwt.appId, uJwt.userId).orNotFound
+    } yield backup.salt
 }
