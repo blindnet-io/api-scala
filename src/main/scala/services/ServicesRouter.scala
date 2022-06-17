@@ -33,13 +33,14 @@ class ServicesRouter(
     documentRepo: DocumentRepository[IO],
     documentKeyRepo: DocumentKeyRepository[IO],
     messageRepo: MessageRepository[IO],
+    messageBackupRepo: MessageBackupRepository[IO],
     storageObjectRepo: StorageObjectRepository[IO],
     storageBlockRepo: StorageBlockRepository[IO]) {
   private val userService = UserService(userRepo, userKeysRepo)
   private val signalUserService = SignalUserService(userRepo, deviceRepo, oneTimeKeyRepo)
   private val documentService = DocumentService(userRepo, documentRepo, documentKeyRepo, storageObjectRepo)
   private val storageService = StorageService(storageObjectRepo, storageBlockRepo, documentKeyRepo)
-  private val messageService = MessageService(userRepo, deviceRepo, messageRepo)
+  private val messageService = MessageService(deviceRepo, messageRepo, messageBackupRepo)
 
   private val authenticator = JwtAuthenticator(appRepo, userRepo)
 

@@ -2,12 +2,14 @@ package io.blindnet.backend
 package services
 
 import auth.*
+import azure.AzureStorage
 import errors.*
 import models.*
 import objects.*
 
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.effect.*
+import cats.effect.std.UUIDGen
 import cats.implicits.*
 import io.circe.*
 import io.circe.generic.auto.*
@@ -25,7 +27,9 @@ import java.time.Instant
 import java.util.{Random, UUID}
 import scala.util.Try
 
-class MessageService(userRepo: UserRepository[IO], deviceRepo: UserDeviceRepository[IO], messageRepo: MessageRepository[IO]) {
+class MessageService(deviceRepo: UserDeviceRepository[IO], messageRepo: MessageRepository[IO], backupRepo: MessageBackupRepository[IO]) {
+  implicit val uuidGen: UUIDGen[IO] = UUIDGen.fromSync
+
   def sendMessage(jwt: AuthJwt)(payload: SendMessagePayload): IO[String] =
     for {
       uJwt: UserJwt <- jwt.asUser
@@ -61,5 +65,23 @@ class MessageService(userRepo: UserRepository[IO], deviceRepo: UserDeviceReposit
     for {
       uJwt: UserJwt <- jwt.asUser
       _ <- messageRepo.deleteAllByUser(uJwt.appId, uJwt.userId)
+    } yield ()
+
+  def saveBackup(jwt: AuthJwt)(newBackup: Boolean, saltOpt: Option[String], stream: fs2.Stream[IO, Byte]): IO[Unit] =
+    for {
+      uJwt: UserJwt <- jwt.asUser
+      _ <- if newBackup
+      then for {
+        salt <- saltOpt.orBadRequest("salt required when newBackup=true")
+        _ <- backupRepo.deleteByUserId(uJwt.appId, uJwt.userId)
+        backup <- UUIDGen.randomString.map(MessageBackup(uJwt.appId, uJwt.userId, _, salt))
+        _ <- backupRepo.insert(backup)
+        _ <- stream.through(AzureStorage.getUploadPipe(backup.blobId)).compile.drain
+      } yield ()
+      else for {
+        _ <- saltOpt.thenBadRequest("salt not supported when newBackup=false")
+        backup <- backupRepo.findByUserId(uJwt.appId, uJwt.userId).orNotFound
+        _ <- stream.through(AzureStorage.getUploadPipe(backup.blobId)).compile.drain
+      } yield ()
     } yield ()
 }

@@ -4,7 +4,11 @@ package azure
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.azure.storage.blob.BlobClientBuilder
+import com.azure.storage.blob.models.AppendBlobRequestConditions
+import com.azure.storage.blob.specialized.BlobOutputStream
 import com.azure.storage.common.StorageSharedKeyCredential
+import fs2.*
+import fs2.io.*
 
 import java.time.{Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
@@ -20,6 +24,15 @@ object AzureStorage {
   private val credential = StorageSharedKeyCredential(accountName, accountKey)
 
   private def mkDate() = DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneOffset.UTC).format(Instant.now())
+
+  private def buildBlobClient(blobId: String) =
+    BlobClientBuilder()
+      .endpoint(s"https://$accountName.blob.core.windows.net/$containerName/$blobId")
+      .credential(credential)
+      .buildClient()
+
+  private def getBlobOutputStream(blobId: String): IO[BlobOutputStream] =
+    IO(buildBlobClient(blobId).getAppendBlobClient.getBlobOutputStream)
 
   def signBlockUpload(blobId: String, blockId: String, blockSize: Int): IO[SignedBlockUpload] =
     val date = mkDate()
@@ -50,14 +63,11 @@ object AzureStorage {
         s"SharedKey $accountName:$signature"
       ))
   
-  def finishBlockBlob(blobId: String, blockIds: List[String]): IO[Unit] = IO {
-    BlobClientBuilder()
-      .endpoint(s"https://$accountName.blob.core.windows.net/$containerName/$blobId")
-      .credential(credential)
-      .buildClient()
-      .getBlockBlobClient
-      .commitBlockList(blockIds.asJava)
-  }
+  def finishBlockBlob(blobId: String, blockIds: List[String]): IO[Unit] =
+    IO(buildBlobClient(blobId).getBlockBlobClient.commitBlockList(blockIds.asJava))
+
+  def getUploadPipe(blobId: String): Pipe[IO, Byte, INothing] =
+    writeOutputStream(getBlobOutputStream(blobId))
 }
 
 case class SignedBlockUpload(date: String, url: String, authorization: String)

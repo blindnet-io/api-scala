@@ -22,6 +22,7 @@ class ServerApp(xa: Transactor[IO]) {
   val documentRepo: PgDocumentRepository = PgDocumentRepository(xa)
   val documentKeyRepo: PgDocumentKeyRepository = PgDocumentKeyRepository(xa)
   val messageRepo: PgMessageRepository = PgMessageRepository(xa)
+  val messageBackupRepo: PgMessageBackupRepository = PgMessageBackupRepository(xa)
   val storageObjectRepo: PgStorageObjectRepository = PgStorageObjectRepository(xa)
   val storageBlockRepo: PgStorageBlockRepository = PgStorageBlockRepository(xa)
 
@@ -29,7 +30,7 @@ class ServerApp(xa: Transactor[IO]) {
     Router(
       "/api/v1" -> ServicesRouter(
         appRepo, userRepo, userKeysRepo, userDeviceRepo, oneTimeKeyRepo,
-        documentRepo, documentKeyRepo, messageRepo,
+        documentRepo, documentKeyRepo, messageRepo, messageBackupRepo,
         storageObjectRepo, storageBlockRepo
       ).routes,
     ).orNotFound
