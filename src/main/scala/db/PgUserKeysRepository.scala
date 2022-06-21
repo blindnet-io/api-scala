@@ -17,7 +17,7 @@ class PgUserKeysRepository(xa: Transactor[IO]) extends UserKeysRepository[IO] {
       .query[UserKeys].option.transact(xa)
 
   override def findAllByGroup(appId: String, groupId: String): IO[List[UserKeys]] =
-    sql"""select app_id, user_id, group_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from user_keys
+    sql"""select app_id, user_id, pub_enc_key, pub_sign_key, signed_pub_enc_key, enc_priv_enc_key, enc_priv_sign_key, key_deriv_salt from user_keys
           inner join users on user_keys.user_id = users.id
           where app_id=$appId::uuid and group_id=$groupId"""
       .query[UserKeys].to[List].transact(xa)
