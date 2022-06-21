@@ -219,22 +219,4 @@ class AddUserDocKeysSpec extends UserAuthEndpointSpec("documents/keys/user/%s", 
       assertResult(Status.NotFound)(res.status)
     }
   }
-
-  it("should fail if user already added") {
-    val testApp = TestApp()
-    val testUser = TestUser()
-    val testUsers = List.fill(10)(TestUser())
-    val aesKey = AesUtil.createKey()
-
-    for {
-      _ <- testApp.insert(serverApp)
-      _ <- testUser.insert(serverApp, testApp)
-      _ <- testUsers.traverse(_.insert(serverApp, testApp))
-      docRes <- run(CreateDocSpec().createCompleteRequest(testUsers, aesKey, testApp.createTempUserToken(testUsers.map(_.id))))
-      docBody <- docRes.as[Json]
-      res <- run(createCompleteRequest(testUsers.head, docBody.asString.get, aesKey, testApp.createUserToken(testUser)))
-    } yield {
-      assertResult(Status.BadRequest)(res.status)
-    }
-  }
 }

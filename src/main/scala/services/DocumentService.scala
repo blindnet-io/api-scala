@@ -34,7 +34,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       docId <- UUIDGen.randomString
       doc = Document(auJwt.appId, docId)
       _ <- documentRepo.insert(doc)
-      _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
+      _ <- documentKeyRepo.insertManyIgnoreConflicts(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
     } yield doc.id
 
   def addUserDocumentKeys(jwt: AuthJwt)(userId: String, payload: AddUserKeysPayload): IO[Boolean] =
@@ -42,9 +42,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       uJwt: UserJwt <- jwt.asUser
       _ <- userRepo.findById(uJwt.appId, userId).orNotFound
       _ <- documentRepo.findAllByIds(uJwt.appId, payload.map(_.documentID)).ensureSize(payload.size)
-      _ <- documentKeyRepo.findAllByDocumentsAndUser(uJwt.appId, payload.map(_.documentID), userId)
-        .ensureSize(0, BadRequestException("key already exists"))
-      _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
+      _ <- documentKeyRepo.insertManyIgnoreConflicts(payload.map(item => DocumentKey(uJwt.appId, item.documentID, userId, item.encryptedSymmetricKey)))
     } yield true
 
   def getDocumentKey(jwt: AuthJwt)(docId: String): IO[String] =
@@ -81,7 +79,7 @@ class DocumentService(userRepo: UserRepository[IO], documentRepo: DocumentReposi
       _ <- documentRepo.findById(auJwt.appId, objId).thenBadRequest("Document already exists")
       doc = Document(auJwt.appId, objId)
       _ <- documentRepo.insert(doc)
-      _ <- documentKeyRepo.insertMany(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
+      _ <- documentKeyRepo.insertManyIgnoreConflicts(payload.map(item => DocumentKey(auJwt.appId, doc.id, item.userID, item.encryptedSymmetricKey)))
     } yield doc.id
 
   def deleteDocument(jwt: AuthJwt)(docId: String): IO[Boolean] =

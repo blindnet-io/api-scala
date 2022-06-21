@@ -14,7 +14,7 @@ trait DocumentKeyRepository[F[_]] {
   def findAllByDocumentsAndUser(appId: String, docIds: List[String], userId: String): F[List[DocumentKey]]
   def findByDocumentAndUser(appId: String, docId: String, userId: String): F[Option[DocumentKey]]
   def insert(key: DocumentKey): F[Unit]
-  def insertMany(keys: List[DocumentKey]): F[Unit]
+  def insertManyIgnoreConflicts(keys: List[DocumentKey]): F[Unit]
   def updateOne(key: DocumentKey): F[Unit]
   def deleteByUser(appId: String, userId: String): F[Unit]
   def deleteByDocumentAndUser(appId: String, docId: String, userId: String): F[Unit]

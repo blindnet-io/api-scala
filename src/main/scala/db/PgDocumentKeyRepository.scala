@@ -36,8 +36,8 @@ class PgDocumentKeyRepository(xa: Transactor[IO]) extends DocumentKeyRepository[
           values (${key.appId}::uuid, ${key.documentId}::uuid, ${key.userId}, ${key.encSymmetricKey})"""
       .update.run.transact(xa).void
 
-  override def insertMany(keys: List[DocumentKey]): IO[Unit] =
-    Update[DocumentKey]("insert into document_keys (app_id, document_id, user_id, enc_sym_key) values (?::uuid, ?::uuid, ?, ?)")
+  override def insertManyIgnoreConflicts(keys: List[DocumentKey]): IO[Unit] =
+    Update[DocumentKey]("insert into document_keys (app_id, document_id, user_id, enc_sym_key) values (?::uuid, ?::uuid, ?, ?) on conflict do nothing")
       .updateMany(keys).transact(xa).void
 
   override def updateOne(key: DocumentKey): IO[Unit] =
