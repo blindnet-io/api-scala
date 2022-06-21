@@ -28,10 +28,67 @@ class CreateDocSpec extends AnyUserAuthEndpointSpec("documents", Method.POST) {
   def createCompleteRequest(testUsers: List[TestUser], aesKey: AesKey, token: String): Request[IO] =
     createAuthedRequest(token).withEntity(payload(testUsers, aesKey))
 
+  override def testUserToken(): IO[Assertion] = {
+    val testApp = TestApp()
+    val sender = TestUser()
+    val testUsers = List.fill(10)(TestUser())
+    val token = testApp.createUserToken(sender)
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- sender.insert(serverApp, testApp)
+      _ <- testUsers.traverse(_.insert(serverApp, testApp))
+      res <- run(createCompleteRequest(testUsers, aesKey, token))
+      body <- res.as[Json]
+      dbDoc <- serverApp.documentRepo.findById(testApp.id, body.asString.get)
+      dbKeys <- serverApp.documentKeyRepo.findAllByDocument(testApp.id, dbDoc.get.id)
+    } yield {
+      assertResult(Status.Ok)(res.status)
+
+      assertResult(testUsers.size)(dbKeys.size)
+      testUsers.foreach(testUser => {
+        val dbKey = dbKeys.find(key => key.userId == testUser.id)
+        assertResult(body.asString.get)(dbKey.get.documentId)
+        assertResult(testUser.id)(dbKey.get.userId)
+        assertResult(json"""{"kty":"oct","k":${aesKey.secretKeyString}}""".noSpaces.getBytes)(testUser.encKey.decryptFromString(dbKey.get.encSymmetricKey))
+      })
+      succeed
+    }
+  }
+
   override def testTempUserTokenUids(): IO[Assertion] = {
     val testApp = TestApp()
     val testUsers = List.fill(10)(TestUser())
     val token = testApp.createTempUserToken(testUsers.map(_.id))
+    val aesKey = AesUtil.createKey()
+
+    for {
+      _ <- testApp.insert(serverApp)
+      _ <- testUsers.traverse(_.insert(serverApp, testApp))
+      res <- run(createCompleteRequest(testUsers, aesKey, token))
+      body <- res.as[Json]
+      dbDoc <- serverApp.documentRepo.findById(testApp.id, body.asString.get)
+      dbKeys <- serverApp.documentKeyRepo.findAllByDocument(testApp.id, dbDoc.get.id)
+    } yield {
+      assertResult(Status.Ok)(res.status)
+
+      assertResult(testUsers.size)(dbKeys.size)
+      testUsers.foreach(testUser => {
+        val dbKey = dbKeys.find(key => key.userId == testUser.id)
+        assertResult(body.asString.get)(dbKey.get.documentId)
+        assertResult(testUser.id)(dbKey.get.userId)
+        assertResult(json"""{"kty":"oct","k":${aesKey.secretKeyString}}""".noSpaces.getBytes)(testUser.encKey.decryptFromString(dbKey.get.encSymmetricKey))
+      })
+      succeed
+    }
+  }
+
+  override def testTempUserTokenGid(): IO[Assertion] = {
+    val testApp = TestApp()
+    val group = UUID.randomUUID().toString
+    val testUsers = List.fill(10)(TestUser(group = group))
+    val token = testApp.createTempUserToken(group)
     val aesKey = AesUtil.createKey()
 
     for {
