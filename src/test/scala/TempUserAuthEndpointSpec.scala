@@ -9,7 +9,7 @@ import org.http4s.implicits.*
 import org.scalatest.Assertion
 
 abstract class TempUserAuthEndpointSpec(path: String, method: Method) extends AuthEndpointSpec(path, method) {
-  override def testValidRequest(): IO[Assertion] = IO.pure(succeed)
+  override def testValidRequest(): IO[Assertion] = IO(cancel("replaced by specific auth type tests"))
   
   it("should accept a valid request with temp UID token")(testTempUserTokenUids())
   it("should accept a valid request with temp GID token")(testTempUserTokenGid())
