@@ -17,6 +17,14 @@ import java.util.Base64
 import scala.util.{Failure, Success, Try}
 
 object AuthJwtUtils {
+  def extractTokenFromHeader(header: Option[String]): Either[String, String] =
+    header match
+      case Some(value) =>
+        if value.startsWith("Bearer ")
+        then Right(value.substring(7))
+        else Left("Invalid authorization header")
+      case None => Left("Missing authorization header")
+
   def verifySignatureWithKey(data: Array[Byte], signature: String, key: String): IO[Unit] =
     decodeBase64(signature).flatMap { signatureBytes =>
       parseKey(key) match {

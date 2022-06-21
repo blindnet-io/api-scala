@@ -21,7 +21,7 @@ class UserEndpoints(auth: JwtAuthenticator, service: UserService) {
     base.summary("Create User (FR-BE01)")
       .post
       .in("users")
-      .in(TapirAuth.bearer[String]())
+      .in(header[Option[String]]("Authorization"))
       .in(jsonBody[CreateUserPayload])
       .out(jsonBody[String])
       .serverLogicSuccess(service.createUser)

@@ -22,9 +22,10 @@ import org.http4s.implicits.*
 import org.http4s.server.AuthMiddleware
 
 class UserService(userRepo: UserRepository[IO], keysRepo: UserKeysRepository[IO]) {
-  def createUser(jwt: AuthJwt)(rawJwt: String, payload: CreateUserPayload): IO[String] =
+  def createUser(jwt: AuthJwt)(rawAuthHeader: Option[String], payload: CreateUserPayload): IO[String] =
     for {
       uJwt: UserJwt <- jwt.asUserNoCheck
+      rawJwt <- IO.fromEither(AuthJwtUtils.extractTokenFromHeader(rawAuthHeader).left.map(e => AuthException(e)))
       _ <- AuthJwtUtils.verifySignatureWithKey(rawJwt, payload.signedJwt, payload.publicSigningKey)
       _ <- AuthJwtUtils.verifyB64SignatureWithKey(payload.publicEncryptionKey, payload.signedPublicEncryptionKey, payload.publicSigningKey)
       existingUser <- userRepo.findById(uJwt.appId, uJwt.userId)

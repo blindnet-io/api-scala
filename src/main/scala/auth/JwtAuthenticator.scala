@@ -20,11 +20,19 @@ import java.util.Base64
 import scala.util.{Failure, Success, Try}
 
 class JwtAuthenticator(appRepo: AppRepository[IO], userRepo: UserRepository[IO]) {
-  val secureEndpoint: PartialServerEndpoint[String, AuthJwt, Unit, String, Unit, Any, IO] =
+  val secureEndpoint: PartialServerEndpoint[Option[String], AuthJwt, Unit, String, Unit, Any, IO] =
     endpoint
-      .securityIn(auth.bearer[String]())
+      .securityIn(header[Option[String]]("Authorization"))
       .errorOut(plainBody[String])
-      .serverSecurityLogic(processToken)
+      .serverSecurityLogicSuccess(authenticate)
+
+  def authenticate(header: Option[String]): IO[AuthJwt] =
+    AuthJwtUtils.extractTokenFromHeader(header) match
+      case Left(error) => IO.raiseError(AuthException(error))
+      case Right(token) => processToken(token).flatMap {
+        case Left(error) => IO.raiseError(AuthException(error))
+        case Right(jwt) => IO.pure(jwt)
+      }
 
   def processToken(token: String): IO[Either[String, AuthJwt]] =
     def getAppKey(claim: JwtClaim): IO[Either[String, PublicKey]] =

@@ -21,7 +21,7 @@ class SignalUserEndpoints(auth: JwtAuthenticator, service: SignalUserService) {
     base.summary("Create User (FR-UM01)")
       .post
       .in("signal" / "users")
-      .in(TapirAuth.bearer[String]())
+      .in(header[Option[String]]("Authorization"))
       .in(jsonBody[CreateSignalUserPayload])
       .out(jsonBody[String])
       .serverLogicSuccess(service.createUser)
