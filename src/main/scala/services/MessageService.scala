@@ -62,13 +62,13 @@ class MessageService(deviceRepo: UserDeviceRepository[IO], messageRepo: MessageR
       messages <- messageRepo.findAllByRecipientAndIds(uJwt.appId, uJwt.userId, deviceId, messageIds)
     } yield messages.map(MessageResponse.apply)
 
-  def deleteAllUserMessages(jwt: AuthJwt)(x: Unit): IO[Unit] =
+  def deleteAllUserMessages(jwt: AuthJwt)(x: Unit): IO[Boolean] =
     for {
       uJwt: UserJwt <- jwt.asUser
       _ <- messageRepo.deleteAllByUser(uJwt.appId, uJwt.userId)
-    } yield ()
+    } yield true
 
-  def saveBackup(jwt: AuthJwt)(newBackup: Boolean, saltOpt: Option[String], stream: Stream[IO, Byte]): IO[Unit] =
+  def saveBackup(jwt: AuthJwt)(newBackup: Boolean, saltOpt: Option[String], stream: Stream[IO, Byte]): IO[Boolean] =
     for {
       uJwt: UserJwt <- jwt.asUser
       _ <- if newBackup
@@ -84,7 +84,7 @@ class MessageService(deviceRepo: UserDeviceRepository[IO], messageRepo: MessageR
         backup <- backupRepo.findByUserId(uJwt.appId, uJwt.userId).orNotFound
         _ <- stream.through(AzureStorage.upload(backup.blobId)).compile.drain
       } yield ()
-    } yield ()
+    } yield true
 
   def getBackup(jwt: AuthJwt)(x: Unit): IO[Stream[IO, Byte]] =
     for {

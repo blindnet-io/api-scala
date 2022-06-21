@@ -74,32 +74,32 @@ class UserService(userRepo: UserRepository[IO], keysRepo: UserKeysRepository[IO]
           .flatMap(_ => findUsersPublicKeys(auJwt.appId, payload.userIds.get))
     } yield ret
 
-  def updatePrivateKeys(jwt: AuthJwt)(payload: UpdateUserPrivateKeysPayload): IO[Unit] =
+  def updatePrivateKeys(jwt: AuthJwt)(payload: UpdateUserPrivateKeysPayload): IO[Boolean] =
     for {
       uJwt: UserJwt <- jwt.asUser
       _ <- payload.keyDerivationSalt match {
         case Some(salt) => keysRepo.updatePrivateKeysAndSalt(uJwt.appId, uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey, salt)
         case None => keysRepo.updatePrivateKeys(uJwt.appId, uJwt.userId, payload.encryptedPrivateEncryptionKey, payload.encryptedPrivateSigningKey)
       }
-    } yield ()
+    } yield true
 
-  def deleteSelfUser(jwt: AuthJwt)(x: Unit): IO[Unit] =
+  def deleteSelfUser(jwt: AuthJwt)(x: Unit): IO[Boolean] =
     for {
       uJwt: UserJwt <- jwt.asUser
       _ <- userRepo.delete(uJwt.appId, uJwt.userId)
-    } yield ()
+    } yield true
 
-  def deleteUser(jwt: AuthJwt)(userId: String): IO[Unit] =
+  def deleteUser(jwt: AuthJwt)(userId: String): IO[Boolean] =
     for {
       cJwt: ClientJwt <- jwt.asClient
       _ <- userRepo.delete(cJwt.appId, userId)
-    } yield ()
+    } yield true
 
-  def deleteGroup(jwt: AuthJwt)(groupId: String): IO[Unit] =
+  def deleteGroup(jwt: AuthJwt)(groupId: String): IO[Boolean] =
     for {
       cJwt: ClientJwt <- jwt.asClient
       _ <- userRepo.deleteAllByGroup(cJwt.appId, groupId)
-    } yield ()
+    } yield true
 
   private def findUserPublicKeys(appId: String, id: String): IO[UserPublicKeysResponse] =
     keysRepo.findById(appId, id).flatMap {

@@ -53,24 +53,28 @@ class UserEndpoints(auth: JwtAuthenticator, service: UserService) {
       .put
       .in("keys" / "me")
       .in(jsonBody[UpdateUserPrivateKeysPayload])
+      .out(jsonBody[Boolean])
       .serverLogicSuccess(service.updatePrivateKeys)
 
   val deleteSelfUser: ApiEndpoint =
     base.summary("Delete Self User (FR-UM04)")
       .delete
       .in("users" / "me")
+      .out(jsonBody[Boolean])
       .serverLogicSuccess(service.deleteSelfUser)
 
   val deleteUser: ApiEndpoint =
     base.summary("Delete User (FR-BE13)")
       .delete
       .in("users" / path[String]("userId"))
+      .out(jsonBody[Boolean])
       .serverLogicSuccess(service.deleteUser)
 
   val deleteGroup: ApiEndpoint =
     base.summary("Delete Group (FR-BE14)")
       .delete
       .in("group" / path[String]("groupId"))
+      .out(jsonBody[Boolean])
       .serverLogicSuccess(service.deleteGroup)
 
   val list: List[ApiEndpoint] = List(

@@ -47,6 +47,7 @@ class MessageEndpoints(auth: JwtAuthenticator, service: MessageService) {
     base.summary("Delete All User Messages (FR-M07)")
       .delete
       .in("messages")
+      .out(jsonBody[Boolean])
       .serverLogicSuccess(service.deleteAllUserMessages)
 
   val saveBackup: ApiEndpoint =
@@ -56,6 +57,7 @@ class MessageEndpoints(auth: JwtAuthenticator, service: MessageService) {
       .in(query[Boolean]("newBackup"))
       .in(query[Option[String]]("salt"))
       .in(streamBinaryBody(Fs2Streams[IO])(CodecFormat.OctetStream()))
+      .out(jsonBody[Boolean])
       .serverLogicSuccess(service.saveBackup)
 
   val getBackup: ApiEndpoint =
