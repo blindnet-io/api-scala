@@ -46,7 +46,7 @@ class DevelopmentEnv() extends StagingEnv {
   override val sendInternalErrorMessages: Boolean = true
 
   // Fake values for testing purposes
-  override lazy val azureStorageAccountName: String = "account_name"
-  override lazy val azureStorageAccountKey: String = "lDiergZCKWA5MvfFQ3qkGWDnFU/Ri7DSNQNJhH7mnM7TOZR7+UUJ2aAuEp7oIdAbvhMvYtR4shWO+AStAwyfmA=="
-  override lazy val azureStorageContainerName: String = "container_name"
+  override lazy val azureStorageAccountName: String = sys.env.getOrElse("BN_AZURE_STORAGE_ACC_NAME", "account_name")
+  override lazy val azureStorageAccountKey: String = sys.env.getOrElse("BN_AZURE_STORAGE_ACC_KEY", "lDiergZCKWA5MvfFQ3qkGWDnFU/Ri7DSNQNJhH7mnM7TOZR7+UUJ2aAuEp7oIdAbvhMvYtR4shWO+AStAwyfmA==")
+  override lazy val azureStorageContainerName: String = sys.env.getOrElse("BN_AZURE_STORAGE_CONT_NAME", "container_name")
 }
