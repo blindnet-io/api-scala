@@ -9,6 +9,8 @@ import org.http4s.implicits.*
 import org.scalatest.Assertion
 
 abstract class ClientAuthEndpointSpec(path: String, method: Method) extends AuthEndpointSpec(path, method) {
+  override def testValidRequest(): IO[Assertion] = testClientToken()
+  
   def testUserToken(): IO[Assertion]
   def testTempUserTokenGid(): IO[Assertion]
   def testTempUserTokenUids(): IO[Assertion]

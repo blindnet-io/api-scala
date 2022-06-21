@@ -21,7 +21,7 @@ class GetDocsKeySpec extends UserAuthEndpointSpec("documents/keys", Method.POST)
           "data_ids": $docIds
     }"""
 
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val aesKeys = List.fill(5)(AesUtil.createKey())

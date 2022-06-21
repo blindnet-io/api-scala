@@ -16,7 +16,7 @@ import org.scalatest.Assertion
 import java.util.UUID
 
 class GetSelfKeysSpec extends UserAuthEndpointSpec("keys/me", Method.GET) {
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val token = testApp.createUserToken(testUser.id, "test_group")

@@ -16,7 +16,7 @@ import org.scalatest.Assertion
 import java.util.UUID
 
 class GetUserPublicKeysSpec extends UserAuthEndpointSpec("keys/%s", Method.GET) {
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val testUser2 = TestUser()

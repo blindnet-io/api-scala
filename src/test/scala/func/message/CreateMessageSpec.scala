@@ -29,7 +29,7 @@ class CreateMessageSpec extends UserAuthEndpointSpec("messages", Method.POST) {
   def createValidRequest(token: String, recipient: TestUser, message: String, timestamp: Instant): Request[IO] =
     createAuthedRequest(token).withEntity(payload(recipient.id, message, timestamp.toString))
 
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val sender = TestUser()
     val recipient = TestUser()

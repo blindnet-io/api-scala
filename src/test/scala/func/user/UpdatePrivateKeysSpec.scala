@@ -23,7 +23,7 @@ class UpdatePrivateKeysSpec extends UserAuthEndpointSpec("keys/me", Method.PUT) 
            "keyDerivationSalt": ${testUser.saltString}
     }"""
 
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val newUser = testUser.changePasswordAndSalt()

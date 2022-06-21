@@ -16,7 +16,7 @@ import org.scalatest.Assertion
 import java.util.UUID
 
 class DeleteSelfUserSpec extends UserAuthEndpointSpec("users/me", Method.DELETE) {
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
 

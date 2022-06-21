@@ -28,7 +28,7 @@ class AddUserDocKeysSpec extends UserAuthEndpointSpec("documents/keys/user/%s", 
   def createCompleteRequest(testUser: TestUser, docId: String, aesKey: AesKey, token: String): Request[IO] =
     createAuthedRequest(token, testUser.id).withEntity(payload(docId, testUser, aesKey))
 
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val testUser2 = TestUser()

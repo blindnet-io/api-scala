@@ -37,7 +37,7 @@ class CreateSignalUserSpec extends UserAuthEndpointSpec("signal/users", Method.P
   def createCompleteRequest(testApp: TestApp, testDevice: TestDevice, token: String): Request[IO] =
     createAuthedRequest(token).withEntity(payload(testApp, testDevice, token))
 
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val testDevices = List.fill(3)(testUser.device())

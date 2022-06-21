@@ -15,6 +15,10 @@ abstract class AuthEndpointSpec(path: String, method: Method) extends EndpointSp
   }
 
   def testNoToken(): IO[Assertion]
+  def testClientToken(): IO[Assertion]
+  def testUserToken(): IO[Assertion]
+  def testTempUserTokenGid(): IO[Assertion]
+  def testTempUserTokenUids(): IO[Assertion]
 
   describe("Authentication") {
     it("should forbid no token")(testNoToken())

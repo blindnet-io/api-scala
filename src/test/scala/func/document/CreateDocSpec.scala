@@ -28,7 +28,7 @@ class CreateDocSpec extends AnyUserAuthEndpointSpec("documents", Method.POST) {
   def createCompleteRequest(testUsers: List[TestUser], aesKey: AesKey, token: String): Request[IO] =
     createAuthedRequest(token).withEntity(payload(testUsers, aesKey))
 
-  override def testValidRequest(): IO[Assertion] = {
+  override def testTempUserTokenUids(): IO[Assertion] = {
     val testApp = TestApp()
     val testUsers = List.fill(10)(TestUser())
     val token = testApp.createTempUserToken(testUsers.map(_.id))

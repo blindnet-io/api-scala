@@ -30,7 +30,7 @@ class CreateUserSpec extends UserAuthEndpointSpec("users", Method.POST) {
   def createCompleteRequest(testApp: TestApp, testUser: TestUser, token: String): Request[IO] =
     createAuthedRequest(token).withEntity(payload(testApp, testUser, token))
 
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val token = testApp.createUserToken(testUser.id, testUser.group)

@@ -17,7 +17,7 @@ import org.scalatest.Assertion
 import java.util.UUID
 
 class DeleteDocKeySpec extends ClientAuthEndpointSpec("documents/%s/keys/%s", Method.DELETE) {
-  override def testValidRequest(): IO[Assertion] = {
+  override def testClientToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val testUserKeep = TestUser()

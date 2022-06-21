@@ -16,7 +16,7 @@ import org.http4s.implicits.*
 import org.scalatest.Assertion
 
 class GetAllDocsKeySpec extends UserAuthEndpointSpec("documents/keys", Method.GET) {
-  override def testValidRequest(): IO[Assertion] = {
+  override def testUserToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val aesKeys = List.fill(10)(AesUtil.createKey())

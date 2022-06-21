@@ -17,7 +17,7 @@ import org.scalatest.Assertion
 import java.util.UUID
 
 class DeleteGroupSpec extends ClientAuthEndpointSpec("group/%s", Method.DELETE) {
-  override def testValidRequest(): IO[Assertion] = {
+  override def testClientToken(): IO[Assertion] = {
     val testApp = TestApp()
     val testUser = TestUser()
     val testUsers = List.fill(10)(TestUser(group = "test_group"))
